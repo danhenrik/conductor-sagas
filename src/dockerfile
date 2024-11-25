@@ -1,0 +1,12 @@
+# build the server
+FROM golang:1.21.1 as build
+
+WORKDIR /app
+
+COPY ./ ./
+
+RUN go mod download
+
+RUN go build -o bin/server main.go
+
+ENTRYPOINT [ "./bin/server" ]

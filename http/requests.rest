@@ -1,0 +1,63 @@
+## Flight
+# Create a new flight
+# Create a new flight
+POST http://localhost:8080/flights
+Content-Type: application/json
+
+{
+  "airline": "AirlineName",
+  "origin": "OriginCity",
+  "destination": "DestinationCity",
+  "departureTime": "2023-10-01T10:00:00Z",
+  "arrivalTime": "2023-10-01T12:00:00Z",
+  "capacity": 320
+}
+
+###
+
+# Get all flights
+GET http://localhost:8080/flights
+Content-Type: application/json
+
+###
+
+# Get a flight by ID
+GET http://localhost:8080/flights/FL124
+Content-Type: application/json
+
+###
+
+# Delete a flight by ID
+DELETE http://localhost:8080/flights/FL123
+Content-Type: application/json
+
+###
+## Booking
+# Create a new booking
+POST http://localhost:8080/bookings
+Content-Type: application/json
+
+{
+  "flightId": "d190e263-86cc-4317-ad98-742f296fe74a",
+  "customerName": "John Doe",
+  "customerEmail": "john.doe@example.com",
+  "seatNumber": 13
+}
+
+###
+
+# Get all bookings
+GET http://localhost:8080/bookings?bookingStatus=active&flightId=d190e263-86cc-4317-ad98-742f296fe74a&customerEmail=john.doe@example.com
+Content-Type: application/json
+
+###
+
+# Get a booking by ID
+GET http://localhost:8080/bookings/BK123
+Content-Type: application/json
+
+###
+
+# Delete a booking by ID
+DELETE http://localhost:8080/bookings/6a111f92-dfc1-4b7b-b83b-b7789f071033
+Content-Type: application/json
