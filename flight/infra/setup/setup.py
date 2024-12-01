@@ -4,7 +4,7 @@ import time
 class pg_conn:
   def __init__(self):
     try:
-      conn = psycopg2.connect("host=database user=saga-flight password=saga-flight dbname=saga-flight port=5432")
+      conn = psycopg2.connect("host=database-flight user=saga-flight password=saga-flight dbname=saga-flight")
       self.conn = conn
       self.c = conn.cursor()
       print("Successfully connected")
@@ -45,9 +45,12 @@ pg_conn.SQLCmd("""CREATE TABLE flight_bookings (
     seat_number INT NOT NULL,
     booking_status VARCHAR(50) NOT NULL,
     booking_time TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL,
     FOREIGN KEY (flight_id) REFERENCES flights(flight_id) ON DELETE CASCADE
   );""")
 
 pg_conn.SQLCmd("""CREATE UNIQUE INDEX unique_active_flight_seat 
   ON flight_bookings (flight_id, seat_number) 
   WHERE booking_status = 'active';""")
+
+

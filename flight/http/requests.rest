@@ -1,7 +1,7 @@
 ## Flight
 # Create a new flight
-# Create a new flight
-POST http://localhost:8080/flights
+# @name createFlight
+POST http://localhost:3000/flights
 Content-Type: application/json
 
 {
@@ -16,29 +16,31 @@ Content-Type: application/json
 ###
 
 # Get all flights
-GET http://localhost:8080/flights
+GET http://localhost:3000/flights
 Content-Type: application/json
 
 ###
 
 # Get a flight by ID
-GET http://localhost:8080/flights/FL124
+GET http://localhost:3000/flights/{{createFlight.response.body.flightId}}
 Content-Type: application/json
 
 ###
 
 # Delete a flight by ID
-DELETE http://localhost:8080/flights/FL123
+DELETE http://localhost:3000/flights/{{createFlight.response.body.flightId}}
 Content-Type: application/json
 
 ###
+
 ## Booking
 # Create a new booking
-POST http://localhost:8080/bookings
+# @name createBooking
+POST http://localhost:3000/bookings
 Content-Type: application/json
 
 {
-  "flightId": "d190e263-86cc-4317-ad98-742f296fe74a",
+  "flightId": "{{createFlight.response.body.flightId}}",
   "customerName": "John Doe",
   "customerEmail": "john.doe@example.com",
   "seatNumber": 13
@@ -47,17 +49,17 @@ Content-Type: application/json
 ###
 
 # Get all bookings
-GET http://localhost:8080/bookings?bookingStatus=active&flightId=d190e263-86cc-4317-ad98-742f296fe74a&customerEmail=john.doe@example.com
+GET http://localhost:3000/bookings?bookingStatus=active&flightId={{createFlight.response.body.flightId}}&customerEmail=john.doe@example.com
 Content-Type: application/json
 
 ###
 
 # Get a booking by ID
-GET http://localhost:8080/bookings/BK123
+GET http://localhost:3000/bookings/{{createBooking.response.body.bookingId}}
 Content-Type: application/json
 
 ###
 
 # Delete a booking by ID
-DELETE http://localhost:8080/bookings/6a111f92-dfc1-4b7b-b83b-b7789f071033
+DELETE http://localhost:3000/bookings/{{createBooking.response.body.bookingId}}
 Content-Type: application/json

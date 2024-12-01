@@ -1,9 +1,29 @@
 services:
-  database:
-    container_name: database
+  ##############
+  ### Flight ###
+  ##############
+
+  server-flight:
+    container_name: server-flight
     build:
       dockerfile: dockerfile
-      context: ./infra/postgres
+      context: ./flight/src
+    environment:
+      - ENV=PRD
+      - DB_ADDR=database-flight
+      - PG_DATABASE=saga-flight
+      - PG_USER=saga-flight
+      - PG_PASSWORD=saga-flight
+    ports:
+      - "3000:8080"
+    depends_on:
+      - database-flight
+
+  database-flight:
+    container_name: database-flight
+    build:
+      dockerfile: dockerfile
+      context: ./flight/infra/postgres
     restart: always
     environment:
       POSTGRES_USER: saga-flight
@@ -11,49 +31,80 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pg-data:/var/lib/postgresql/data
-      - ./infra/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+      - pg-data-flight:/var/lib/postgresql/data
+      - ./flight/infra/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
     entrypoint: docker-entrypoint.sh -c 'config_file=/etc/postgresql/postgresql.conf'
+
+  setup-flight:
+    container_name: setup-flight
+    build:
+      dockerfile: dockerfile
+      context: ./flight/infra/setup
+    volumes:
+      - ./flight/infra/setup/setup.py:/setup/setup.py
+    depends_on:
+      - database-flight
+
+  #############
+  ### Hotel ###
+  #############
+
+  server-hotel:
+    container_name: server-hotel
+    build:
+      dockerfile: dockerfile
+      context: ./hotel/src
+    environment:
+      - ENV=PRD
+      - DB_ADDR=database-hotel
+      - PG_DATABASE=saga-hotel
+      - PG_USER=saga-hotel
+      - PG_PASSWORD=saga-hotel
+    ports:
+      - "3001:8080"
+    depends_on:
+      - database-hotel
+
+  database-hotel:
+    container_name: database-hotel
+    build:
+      dockerfile: dockerfile
+      context: ./hotel/infra/postgres
+    restart: always
+    environment:
+      POSTGRES_USER: saga-hotel
+      POSTGRES_PASSWORD: saga-hotel
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg-data-hotel:/var/lib/postgresql/data
+      - ./hotel/infra/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+    entrypoint: docker-entrypoint.sh -c 'config_file=/etc/postgresql/postgresql.conf'
+
+  setup-hotel:
+    container_name: setup-hotel
+    build:
+      dockerfile: dockerfile
+      context: ./hotel/infra/setup
+    volumes:
+      - ./hotel/infra/setup/setup.py:/setup/setup.py
+    depends_on:
+      - database-hotel
+
+  ##############
+  ### Shared ###
+  ##############
 
   adminer:
     container_name: adminer
     image: adminer:4
     depends_on:
-      - database
+      - database-flight
+      - database-hotel
     restart: always
     ports:
       - "3002:8080"
 
-  setup:
-    container_name: setup
-    build:
-      dockerfile: dockerfile
-      context: ./infra/setup
-    volumes:
-      - ./infra/setup/setup.py:/setup/setup.py
-    depends_on:
-      - database
-
-  server:
-    container_name: server
-    build:
-      dockerfile: dockerfile
-      context: ./src
-    environment:
-      - ENV=PRD
-      - DB_ADDR=database
-      - PG_DATABASE=saga-flight
-      - PG_USER=saga-flight
-      - PG_PASSWORD=saga-flight
-      - JWT_SECRET=secret
-    ports:
-      - "3000:8080"
-    depends_on:
-      - database
-    volumes:
-      - ./server/cmd:/app/cmd
-      - ./server/internal:/app/internal
 volumes:
-  pg-data:
-  es-data:
-  kbn-data:
+  pg-data-flight:
+  pg-data-hotel:

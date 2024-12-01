@@ -44,6 +44,7 @@ type FlightBooking struct {
 	SeatNumber    int           `json:"seatNumber" db:"seat_number"`
 	BookingStatus BookingStatus `json:"bookingStatus" db:"booking_status"`
 	BookingTime   time.Time     `json:"bookingTime" db:"booking_time"`
+	UpdatedAt     time.Time     `json:"updateAt" db:"updated_at"`
 }
 
 // ####################################################################################################################################
@@ -117,7 +118,7 @@ func createFlight(c *gin.Context) {
 		newFlight.FlightID, newFlight.Airline, newFlight.Origin, newFlight.Destination, newFlight.DepartureTime, newFlight.ArrivalTime, newFlight.Capacity, newFlight.AvailableSeats)
 
 	if err != nil {
-		log.Printf("Failed to execute query: %v", err)
+		println(err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create flight"})
 		return
 	}
@@ -152,13 +153,15 @@ func getFlightByID(c *gin.Context) {
 	flightID := c.Param("id")
 
 	var flight Flight
-	err := db.QueryRow(context.Background(), "SELECT flight_id, airline, origin, destination, departure_time, arrival_time, capacity, available_seats FROM flights WHERE flight_id=$1", flightID).Scan(
-		&flight.FlightID, &flight.Airline, &flight.Origin, &flight.Destination, &flight.DepartureTime, &flight.ArrivalTime, &flight.Capacity, &flight.AvailableSeats)
+	err := db.QueryRow(context.Background(),
+		"SELECT flight_id, airline, origin, destination, departure_time, arrival_time, capacity, available_seats FROM flights WHERE flight_id=$1", flightID).
+		Scan(&flight.FlightID, &flight.Airline, &flight.Origin, &flight.Destination, &flight.DepartureTime, &flight.ArrivalTime, &flight.Capacity, &flight.AvailableSeats)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Flight not found"})
 		} else {
+			println(err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch flight"})
 		}
 		return
@@ -170,8 +173,11 @@ func getFlightByID(c *gin.Context) {
 func deleteFlight(c *gin.Context) {
 	flightID := c.Param("id")
 
-	_, err := db.Exec(context.Background(), "DELETE FROM flights WHERE flight_id=$1", flightID)
+	_, err := db.Exec(context.Background(),
+		"DELETE FROM flights WHERE flight_id=$1",
+		flightID)
 	if err != nil {
+		println(err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete flight"})
 		return
 	}
@@ -187,6 +193,21 @@ func createBooking(c *gin.Context) {
 		return
 	}
 
+	var flightExists bool
+	err := db.QueryRow(context.Background(),
+		"SELECT EXISTS(SELECT 1 FROM flights WHERE flight_id=$1)", req.FlightID).
+		Scan(&flightExists)
+	if err != nil {
+		println(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate flight"})
+		return
+	}
+
+	if !flightExists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Flight does not exist"})
+		return
+	}
+
 	newBooking := FlightBooking{
 		BookingID:     uuid.New().String(),
 		FlightID:      req.FlightID,
@@ -195,17 +216,18 @@ func createBooking(c *gin.Context) {
 		SeatNumber:    req.SeatNumber,
 		BookingStatus: BookingStatusActive,
 		BookingTime:   time.Now(),
+		UpdatedAt:     time.Now(),
 	}
 
-	_, err := db.Exec(context.Background(),
-		"INSERT INTO flight_bookings (booking_id, flight_id, customer_name, customer_email, seat_number, booking_status, booking_time) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-		newBooking.BookingID, newBooking.FlightID, newBooking.CustomerName, newBooking.CustomerEmail, newBooking.SeatNumber, newBooking.BookingStatus, newBooking.BookingTime)
+	_, err = db.Exec(context.Background(),
+		"INSERT INTO flight_bookings (booking_id, flight_id, customer_name, customer_email, seat_number, booking_status, booking_time, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+		newBooking.BookingID, newBooking.FlightID, newBooking.CustomerName, newBooking.CustomerEmail, newBooking.SeatNumber, newBooking.BookingStatus, newBooking.BookingTime, newBooking.UpdatedAt)
 
 	if err != nil {
 		if pgxErr, ok := err.(*pgconn.PgError); ok && pgxErr.Code == "23505" {
 			c.JSON(http.StatusConflict, gin.H{"error": "Seat already booked for this flight"})
 		} else {
-			log.Printf("Failed to execute query: %v", err)
+			println(err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create booking"})
 		}
 		return
@@ -247,6 +269,7 @@ func getBookings(c *gin.Context) {
 
 	rows, err := db.Query(context.Background(), query, args...)
 	if err != nil {
+		println(err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch bookings"})
 		return
 	}
@@ -256,7 +279,7 @@ func getBookings(c *gin.Context) {
 	for rows.Next() {
 		var booking FlightBooking
 		if err := rows.Scan(&booking.BookingID, &booking.FlightID, &booking.CustomerName, &booking.CustomerEmail,
-			&booking.SeatNumber, &booking.BookingStatus, &booking.BookingTime); err != nil {
+			&booking.SeatNumber, &booking.BookingStatus, &booking.BookingTime, &booking.UpdatedAt); err != nil {
 			println(err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error scanning booking data"})
 			return
@@ -267,17 +290,20 @@ func getBookings(c *gin.Context) {
 	c.JSON(http.StatusOK, bookings)
 }
 
+// TODO: Get booking tão com problema
 func getBookingByID(c *gin.Context) {
 	bookingID := c.Param("id")
 
 	var booking FlightBooking
-	err := db.QueryRow(context.Background(), "SELECT booking_id, flight_id, customer_name, customer_email, seats_booked, booking_status, booking_time FROM flight_bookings WHERE booking_id=$1", bookingID).Scan(
-		&booking.BookingID, &booking.FlightID, &booking.CustomerName, &booking.CustomerEmail, &booking.SeatNumber, &booking.BookingStatus, &booking.BookingTime)
+	err := db.QueryRow(context.Background(),
+		"SELECT booking_id, flight_id, customer_name, customer_email, seat_number, booking_status, booking_time, updated_at FROM flight_bookings WHERE booking_id=$1", bookingID).Scan(
+		&booking.BookingID, &booking.FlightID, &booking.CustomerName, &booking.CustomerEmail, &booking.SeatNumber, &booking.BookingStatus, &booking.BookingTime, &booking.UpdatedAt)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Booking not found"})
 		} else {
+			println(err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch booking"})
 		}
 		return
@@ -289,8 +315,11 @@ func getBookingByID(c *gin.Context) {
 func deleteBooking(c *gin.Context) {
 	bookingID := c.Param("id")
 
-	_, err := db.Exec(context.Background(), "UPDATE flight_bookings SET booking_status=$1 WHERE booking_id=$2", BookingStatusCanceled, bookingID)
+	_, err := db.Exec(context.Background(),
+		"UPDATE flight_bookings SET booking_status=$1, updated_at=$2 WHERE booking_id=$3",
+		BookingStatusCanceled, time.Now(), bookingID)
 	if err != nil {
+		println(err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cancel booking"})
 		return
 	}
@@ -316,5 +345,5 @@ func main() {
 	r.GET("/bookings/:id", getBookingByID)
 	r.DELETE("/bookings/:id", deleteBooking)
 
-	r.Run(":8080")
+	r.Run(":3000")
 }
