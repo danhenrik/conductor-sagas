@@ -1,0 +1,134 @@
+{
+  "createTime": 1733878095634,
+  "updateTime": 1733971182365,
+  "name": "travel_booking_saga_wf",
+  "description": "Travel booking workflow with saga pattern",
+  "version": 4,
+  "tasks": [
+    {
+      "name": "book_flight",
+      "taskReferenceName": "book_flight_ref",
+      "inputParameters": {
+        "http_request": {
+          "method": "POST",
+          "uri": "http://localhost:3000/bookings",
+          "body": {
+            "flightId": "{{ workflow.input.flightId }}",
+            "customerName": "{{ workflow.input.customerName }}",
+            "customerEmail": "{{ workflow.input.customerEmail }}",
+            "seatNumber": "{{ workflow.input.seatNumber }}"
+          }
+        }
+      },
+      "type": "HTTP",
+      "decisionCases": {},
+      "defaultCase": [],
+      "forkTasks": [],
+      "startDelay": 0,
+      "joinOn": [],
+      "optional": false,
+      "defaultExclusiveJoinTask": [],
+      "asyncComplete": false,
+      "loopOver": [],
+      "onStateChange": {},
+      "permissive": false
+    },
+    {
+      "name": "check_flight_booking_status",
+      "taskReferenceName": "check_flight_booking_status_ref",
+      "inputParameters": {
+        "flightBookingResponse": "{{ task_inputs.book_flight.output }}"
+      },
+      "type": "SWITCH",
+      "decisionCases": {
+        "200": [
+          {
+            "name": "book_hotel",
+            "taskReferenceName": "book_hotel_ref",
+            "inputParameters": {
+              "http_request": {
+                "method": "POST",
+                "uri": "http://localhost:3001/bookings",
+                "body": {
+                  "hotelId": "{{ workflow.input.hotelId }}",
+                  "checkInDate": "{{ workflow.input.checkInDate }}",
+                  "checkOutDate": "{{ workflow.input.checkOutDate }}",
+                  "customerName": "{{ workflow.input.customerName }}",
+                  "customerEmail": "{{ workflow.input.customerEmail }}",
+                  "roomNumber": "{{ workflow.input.roomNumber }}"
+                }
+              }
+            },
+            "type": "HTTP",
+            "decisionCases": {},
+            "defaultCase": [],
+            "forkTasks": [],
+            "startDelay": 0,
+            "joinOn": [],
+            "optional": false,
+            "defaultExclusiveJoinTask": [],
+            "asyncComplete": false,
+            "loopOver": [],
+            "onStateChange": {},
+            "permissive": false
+          }
+        ]
+      },
+      "defaultCase": [
+        {
+          "name": "compensate_flight_booking",
+          "taskReferenceName": "compensate_flight_booking_ref",
+          "inputParameters": {
+            "http_request": {
+              "method": "DELETE",
+              "uri": "http://localhost:3000/bookings/{{ book_flight_ref.output.bookingId }}"
+            }
+          },
+          "type": "HTTP",
+          "decisionCases": {},
+          "defaultCase": [],
+          "forkTasks": [],
+          "startDelay": 0,
+          "joinOn": [],
+          "optional": false,
+          "defaultExclusiveJoinTask": [],
+          "asyncComplete": false,
+          "loopOver": [],
+          "onStateChange": {},
+          "permissive": false
+        }
+      ],
+      "forkTasks": [],
+      "startDelay": 0,
+      "joinOn": [],
+      "optional": false,
+      "defaultExclusiveJoinTask": [],
+      "asyncComplete": false,
+      "loopOver": [],
+      "evaluatorType": "value-param",
+      "expression": "flightBookingResponse.statusCode",
+      "onStateChange": {},
+      "permissive": false
+    }
+  ],
+  "inputParameters": [
+    "flightId",
+    "customerName",
+    "customerEmail",
+    "seatNumber",
+    "hotelId",
+    "checkInDate",
+    "checkOutDate",
+    "roomNumber"
+  ],
+  "outputParameters": {},
+  "schemaVersion": 2,
+  "restartable": true,
+  "workflowStatusListenerEnabled": false,
+  "ownerEmail": "example@email.com",
+  "timeoutPolicy": "ALERT_ONLY",
+  "timeoutSeconds": 0,
+  "variables": {},
+  "inputTemplate": {},
+  "enforceSchema": true
+}

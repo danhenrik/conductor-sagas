@@ -38,13 +38,12 @@ POST http://localhost:3001/bookings
 Content-Type: application/json
 
 {
-  "hotelId": "{{createHotel.response.body.hotelId}}",
+  "hotelId": "b003d4e3-ace4-4870-b1b0-7fb195f6f95d",
   "checkInDate": "2023-10-01T14:00:00Z",
   "checkOutDate": "2023-10-05T11:00:00Z",
   "customerName": "John Doe",
   "customerEmail": "john.doe@example.com",
-  "roomNumber": 101,
-  "bookingStatus": "active"
+  "roomNumber": 99
 }
 
 ###
