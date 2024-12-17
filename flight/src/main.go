@@ -54,7 +54,7 @@ type FlightBooking struct {
 var db *pgxpool.Pool
 
 func connectDB() {
-	databaseURL := "host=localhost user=saga-flight password=saga-flight dbname=saga-flight sslmode=disable" // e.g., "postgres://user:password@localhost:5432/dbname"
+	databaseURL := "host=database-flight user=saga-flight password=saga-flight dbname=saga-flight sslmode=disable" // e.g., "postgres://user:password@localhost:5432/dbname"
 	var err error
 
 	db, err = pgxpool.New(context.Background(), databaseURL)

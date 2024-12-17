@@ -52,7 +52,7 @@ type HotelBooking struct {
 var db *pgxpool.Pool
 
 func connectDB() {
-	databaseURL := "host=localhost user=saga-hotel password=saga-hotel dbname=saga-hotel sslmode=disable port=5433" // e.g., "postgres://user:password@localhost:5432/dbname"
+	databaseURL := "host=database-hotel user=saga-hotel password=saga-hotel dbname=saga-hotel sslmode=disable" // e.g., "postgres://user:password@localhost:5432/dbname"
 	var err error
 
 	db, err = pgxpool.New(context.Background(), databaseURL)
@@ -69,7 +69,7 @@ func closeDB() {
 }
 
 // ####################################################################################################################################
-// ### Request Objects 																																																						###
+// ### 	Request Objects 																																																						###
 // ####################################################################################################################################
 
 type CreateHotelRequest struct {
