@@ -1,9 +1,9 @@
 {
-  "createTime": 1733878095634,
-  "updateTime": 1733971182365,
+  "createTime": 1734573149368,
+  "updateTime": 1734612863807,
   "name": "travel_booking_saga_wf",
   "description": "Travel booking workflow with saga pattern",
-  "version": 4,
+  "version": 11,
   "tasks": [
     {
       "name": "book_flight",
@@ -11,12 +11,12 @@
       "inputParameters": {
         "http_request": {
           "method": "POST",
-          "uri": "http://localhost:3000/bookings",
+          "uri": "http://host.docker.internal:3000/bookings",
           "body": {
-            "flightId": "{{ workflow.input.flightId }}",
-            "customerName": "{{ workflow.input.customerName }}",
-            "customerEmail": "{{ workflow.input.customerEmail }}",
-            "seatNumber": "{{ workflow.input.seatNumber }}"
+            "flightId": "${workflow.input.flightId}",
+            "customerName": "${workflow.input.customerName}",
+            "customerEmail": "${workflow.input.customerEmail}",
+            "seatNumber": "${workflow.input.seatNumber}"
           }
         }
       },
@@ -37,25 +37,25 @@
       "name": "check_flight_booking_status",
       "taskReferenceName": "check_flight_booking_status_ref",
       "inputParameters": {
-        "flightBookingResponse": "{{ task_inputs.book_flight.output }}"
+        "flightBookingStatusCode": "${book_flight_ref.output.response.statusCode}"
       },
       "type": "SWITCH",
       "decisionCases": {
-        "200": [
+        "201": [
           {
             "name": "book_hotel",
             "taskReferenceName": "book_hotel_ref",
             "inputParameters": {
               "http_request": {
                 "method": "POST",
-                "uri": "http://localhost:3001/bookings",
+                "uri": "http://host.docker.internal:3001/bookings",
                 "body": {
-                  "hotelId": "{{ workflow.input.hotelId }}",
-                  "checkInDate": "{{ workflow.input.checkInDate }}",
-                  "checkOutDate": "{{ workflow.input.checkOutDate }}",
-                  "customerName": "{{ workflow.input.customerName }}",
-                  "customerEmail": "{{ workflow.input.customerEmail }}",
-                  "roomNumber": "{{ workflow.input.roomNumber }}"
+                  "hotelId": "${workflow.input.hotelId}",
+                  "checkInDate": "${workflow.input.checkInDate}",
+                  "checkOutDate": "${workflow.input.checkOutDate}",
+                  "customerName": "${workflow.input.customerName}",
+                  "customerEmail": "${workflow.input.customerEmail}",
+                  "roomNumber": "${workflow.input.roomNumber}"
                 }
               }
             },
@@ -81,7 +81,7 @@
           "inputParameters": {
             "http_request": {
               "method": "DELETE",
-              "uri": "http://localhost:3000/bookings/{{ book_flight_ref.output.bookingId }}"
+              "uri": "http://host.docker.internal:3000/bookings/seat/${workflow.input.flightId}/${workflow.input.seatNumber}"
             }
           },
           "type": "HTTP",
@@ -106,7 +106,7 @@
       "asyncComplete": false,
       "loopOver": [],
       "evaluatorType": "value-param",
-      "expression": "flightBookingResponse.statusCode",
+      "expression": "flightBookingStatusCode",
       "onStateChange": {},
       "permissive": false
     }

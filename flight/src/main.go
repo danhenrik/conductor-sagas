@@ -54,7 +54,8 @@ type FlightBooking struct {
 var db *pgxpool.Pool
 
 func connectDB() {
-	databaseURL := "host=database-flight user=saga-flight password=saga-flight dbname=saga-flight sslmode=disable" // e.g., "postgres://user:password@localhost:5432/dbname"
+	databaseURL := "host=localhost user=saga-flight password=saga-flight dbname=saga-flight sslmode=disable" // e.g., "postgres://user:password@localhost:5432/dbname"
+	// databaseURL := "host=database-flight user=saga-flight password=saga-flight dbname=saga-flight sslmode=disable" // e.g., "postgres://user:password@localhost:5432/dbname"
 	var err error
 
 	db, err = pgxpool.New(context.Background(), databaseURL)
@@ -71,7 +72,7 @@ func closeDB() {
 }
 
 // ####################################################################################################################################
-// ### Request Objects 																																																						###
+// ### Request Objects 																																																						###
 // ####################################################################################################################################
 
 type CreateFlightRequest struct {
@@ -193,6 +194,11 @@ func createBooking(c *gin.Context) {
 		return
 	}
 
+	println(req.FlightID)
+	println(req.CustomerName)
+	println(req.CustomerEmail)
+	println(req.SeatNumber)
+
 	var flightExists bool
 	err := db.QueryRow(context.Background(),
 		"SELECT EXISTS(SELECT 1 FROM flights WHERE flight_id=$1)", req.FlightID).
@@ -312,12 +318,48 @@ func getBookingByID(c *gin.Context) {
 	c.JSON(http.StatusOK, booking)
 }
 
-func deleteBooking(c *gin.Context) {
+func deleteBookingByID(c *gin.Context) {
 	bookingID := c.Param("id")
+
+	if bookingID == "" {
+		c.JSON(http.StatusBadRequest,  gin.H{"error": "Failed to cancel (Missing bookingId)"})
+		return
+	}
+
+	println(bookingID)
 
 	_, err := db.Exec(context.Background(),
 		"UPDATE flight_bookings SET booking_status=$1, updated_at=$2 WHERE booking_id=$3",
 		BookingStatusCanceled, time.Now(), bookingID)
+	if err != nil {
+		println(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cancel booking"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Booking canceled successfully"})
+}
+
+func deleteBookingByFlightSeat(c *gin.Context) {
+	flightID := c.Param("flightId")
+	seatNumber := c.Param("seatNumber")
+
+	if flightID == "" {
+		c.JSON(http.StatusBadRequest,  gin.H{"error": "Failed to cancel (Missing flightId)"})
+		return
+	}
+
+	if seatNumber == "" {
+		c.JSON(http.StatusBadRequest,  gin.H{"error": "Failed to cancel (Missing seatNumber)"})
+		return
+	}
+
+	println(flightID)
+	println(seatNumber)
+
+	_, err := db.Exec(context.Background(),
+		"UPDATE flight_bookings SET booking_status=$1, updated_at=$2 WHERE flight_id=$3 AND seat_number=$4",
+		BookingStatusCanceled, time.Now(), flightID, seatNumber)
 	if err != nil {
 		println(err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cancel booking"})
@@ -343,7 +385,8 @@ func main() {
 	r.POST("/bookings", createBooking)
 	r.GET("/bookings", getBookings)
 	r.GET("/bookings/:id", getBookingByID)
-	r.DELETE("/bookings/:id", deleteBooking)
+	r.DELETE("/bookings/id/:id", deleteBookingByID)
+	r.DELETE("/bookings/seat/:flightId/:seatNumber", deleteBookingByFlightSeat)
 
 	r.Run(":3000")
 }

@@ -4,7 +4,8 @@ import time
 class pg_conn:
   def __init__(self):
     try:
-      conn = psycopg2.connect("host=database-hotel port=5432 user=saga-hotel password=saga-hotel dbname=saga-hotel")
+      # conn = psycopg2.connect("host=database-hotel port=5432 user=saga-hotel password=saga-hotel dbname=saga-hotel")
+      conn = psycopg2.connect("host=localhost port=5433 user=saga-hotel password=saga-hotel dbname=saga-hotel")
       self.conn = conn
       self.c = conn.cursor()
       print("Successfully connected")

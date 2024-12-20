@@ -49,6 +49,12 @@ Content-Type: application/json
 ###
 
 # Get all bookings
+GET http://localhost:3000/bookings
+Content-Type: application/json
+
+###
+
+# Get all bookings
 GET http://localhost:3000/bookings?bookingStatus=active&flightId={{createFlight.response.body.flightId}}&customerEmail=john.doe@example.com
 Content-Type: application/json
 
@@ -61,5 +67,10 @@ Content-Type: application/json
 ###
 
 # Delete a booking by ID
-DELETE http://localhost:3000/bookings/{{createBooking.response.body.bookingId}}
+DELETE http://localhost:3000/bookings/id/{{createBooking.response.body.bookingId}}
+Content-Type: application/json
+
+###
+# Delete a booking by flightId + seatNumber
+DELETE http://localhost:3000/bookings/seat/{{createBooking.response.body.flightId}}/{{createBooking.response.body.seatNumber}}
 Content-Type: application/json

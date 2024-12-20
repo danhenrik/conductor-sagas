@@ -52,7 +52,8 @@ type HotelBooking struct {
 var db *pgxpool.Pool
 
 func connectDB() {
-	databaseURL := "host=database-hotel user=saga-hotel password=saga-hotel dbname=saga-hotel sslmode=disable" // e.g., "postgres://user:password@localhost:5432/dbname"
+	databaseURL := "host=localhost user=saga-hotel password=saga-hotel dbname=saga-hotel sslmode=disable port=5433" // e.g., "postgres://user:password@localhost:5432/dbname"
+	// databaseURL := "host=database-hotel user=saga-hotel password=saga-hotel dbname=saga-hotel sslmode=disable port=5433" // e.g., "postgres://user:password@localhost:5432/dbname"
 	var err error
 
 	db, err = pgxpool.New(context.Background(), databaseURL)
@@ -189,6 +190,11 @@ func createHotelBooking(c *gin.Context) {
 		return
 	}
 
+	println(req.HotelID)
+	println(req.CustomerName)
+	println(req.CustomerEmail)
+	println(req.RoomNumber)
+
 	var hotelExists bool
 	err := db.QueryRow(context.Background(),
 		"SELECT EXISTS(SELECT 1 FROM hotels WHERE hotel_id=$1)", req.HotelID).
@@ -304,12 +310,48 @@ func getHotelBookingByID(c *gin.Context) {
 	c.JSON(http.StatusOK, booking)
 }
 
-func deleteBooking(c *gin.Context) {
+func deleteBookingByID(c *gin.Context) {
 	bookingID := c.Param("id")
+
+	if bookingID == "" {
+		c.JSON(http.StatusBadRequest,  gin.H{"error": "Failed to cancel (Missing bookingId)"})
+		return
+	}
+
+	println(bookingID)
 
 	_, err := db.Exec(context.Background(),
 		"UPDATE hotel_bookings SET booking_status=$1, updated_at=$2 WHERE booking_id=$3",
 		BookingStatusCanceled, time.Now(), bookingID)
+	if err != nil {
+		println(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cancel booking"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Booking canceled successfully"})
+}
+
+func deleteBookingByHotelRoom(c *gin.Context) {
+	hotelID := c.Param("hotelId")
+	roomNumber := c.Param("roomNumber")
+
+	if hotelID == "" {
+		c.JSON(http.StatusBadRequest,  gin.H{"error": "Failed to cancel (Missing hotelId)"})
+		return
+	}
+
+	if roomNumber == "" {
+		c.JSON(http.StatusBadRequest,  gin.H{"error": "Failed to cancel (Missing roomNumber)"})
+		return
+	}
+
+	println(hotelID)
+	println(roomNumber)
+
+	_, err := db.Exec(context.Background(),
+		"UPDATE hotel_bookings SET booking_status=$1, updated_at=$2 WHERE hotel_id=$3 AND room_number=$4",
+		BookingStatusCanceled, time.Now(), hotelID, roomNumber)
 	if err != nil {
 		println(err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cancel booking"})
@@ -335,7 +377,8 @@ func main() {
 	r.POST("/bookings", createHotelBooking)
 	r.GET("/bookings", getHotelBookings)
 	r.GET("/bookings/:id", getHotelBookingByID)
-	r.DELETE("/bookings/:id", deleteBooking)
+	r.DELETE("/bookings/id/:id", deleteBookingByID)
+	r.DELETE("/bookings/room/:hotelId/:roomBNumber", deleteBookingByHotelRoom)
 
 	r.Run(":3001")
 }

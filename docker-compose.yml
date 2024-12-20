@@ -16,8 +16,7 @@ services:
       - PG_PASSWORD=saga-flight
     ports:
       - "3000:3000"
-    networks: 
-      - flight 
+    network_mode:  host
     depends_on:
       - database-flight
 
@@ -30,10 +29,7 @@ services:
     environment:
       POSTGRES_USER: saga-flight
       POSTGRES_PASSWORD: saga-flight
-    # ports:
-    #   - "5432:5432"
-    networks: 
-      - flight
+    network_mode:  host
     volumes:
       - pg-data-flight:/var/lib/postgresql/data
       - ./flight/infra/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
@@ -46,8 +42,7 @@ services:
       context: ./flight/infra/setup
     volumes:
       - ./flight/infra/setup/setup.py:/setup/setup.py
-    networks: 
-      - flight 
+    network_mode:  host
     depends_on:
       - database-flight
 
@@ -68,8 +63,7 @@ services:
       - PG_PASSWORD=saga-hotel
     ports:
       - "3001:3001"
-    networks: 
-      - hotel
+    network_mode:  host
     depends_on:
       - database-hotel
 
@@ -82,10 +76,7 @@ services:
     environment:
       POSTGRES_USER: saga-hotel
       POSTGRES_PASSWORD: saga-hotel
-    # ports:
-    #   - "5432:5432"
-    networks: 
-      - hotel
+    network_mode:  host
     volumes:
       - pg-data-hotel:/var/lib/postgresql/data
       - ./hotel/infra/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
@@ -98,8 +89,7 @@ services:
       context: ./hotel/infra/setup
     volumes:
       - ./hotel/infra/setup/setup.py:/setup/setup.py
-    networks: 
-      - hotel
+    network_mode:  host
     depends_on:
       - database-hotel
 
@@ -125,7 +115,3 @@ volumes:
   pg-data-hotel:
 
 networks:
-  hotel:
-    driver: bridge
-  flight:
-    driver: bridge

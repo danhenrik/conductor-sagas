@@ -49,7 +49,7 @@ Content-Type: application/json
 ###
 
 # Get all hotel bookings
-GET http://localhost:3001/bookings?bookingStatus=active&hotelId={{createHotel.response.body.hotelId}}&customerEmail=john.doe@example.com
+GET http://localhost:3001/bookings
 Content-Type: application/json
 
 ###
@@ -61,5 +61,11 @@ Content-Type: application/json
 ###
 
 # Delete a hotel booking by ID
-DELETE http://localhost:3001/bookings/{{createBooking.response.body.bookingId}}
+DELETE http://localhost:3001/bookings/id/{{createBooking.response.body.bookingId}}
+Content-Type: application/json
+
+###
+
+# Delete a hotel booking by hotelId + roomNumber
+DELETE http://localhost:3001/bookings/room/{{createBooking.response.body.hotelId}}/{{createBooking.response.body.roomNumber}}
 Content-Type: application/json
