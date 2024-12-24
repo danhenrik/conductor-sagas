@@ -278,7 +278,7 @@ func getHotelBookings(c *gin.Context) {
 	var bookings []HotelBooking
 	for rows.Next() {
 		var booking HotelBooking
-		if err := rows.Scan(&booking.BookingID, &booking.HotelID, &booking.CheckInDate, &booking.CheckOutDate, &booking.CustomerName, &booking.CustomerEmail, &booking.RoomNumber, &booking.BookingStatus); err != nil {
+		if err := rows.Scan(&booking.BookingID, &booking.HotelID, &booking.CheckInDate, &booking.CheckOutDate, &booking.CustomerName, &booking.CustomerEmail, &booking.RoomNumber, &booking.BookingStatus, &booking.BookingTime, &booking.UpdatedAt); err != nil {
 			println(err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error scanning booking data"})
 			return
@@ -295,7 +295,7 @@ func getHotelBookingByID(c *gin.Context) {
 	var booking HotelBooking
 	err := db.QueryRow(context.Background(),
 		"SELECT booking_id, hotel_id, check_in_date, check_out_date, customer_name, customer_email, room_number, booking_status FROM hotel_bookings WHERE booking_id=$1", bookingID).
-		Scan(&booking.BookingID, &booking.HotelID, &booking.CheckInDate, &booking.CheckOutDate, &booking.CustomerName, &booking.CustomerEmail, &booking.RoomNumber, &booking.BookingStatus)
+		Scan(&booking.BookingID, &booking.HotelID, &booking.CheckInDate, &booking.CheckOutDate, &booking.CustomerName, &booking.CustomerEmail, &booking.RoomNumber, &booking.BookingStatus, &booking.BookingTime, &booking.UpdatedAt)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -314,7 +314,7 @@ func deleteBookingByID(c *gin.Context) {
 	bookingID := c.Param("id")
 
 	if bookingID == "" {
-		c.JSON(http.StatusBadRequest,  gin.H{"error": "Failed to cancel (Missing bookingId)"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to cancel (Missing bookingId)"})
 		return
 	}
 
@@ -337,12 +337,12 @@ func deleteBookingByHotelRoom(c *gin.Context) {
 	roomNumber := c.Param("roomNumber")
 
 	if hotelID == "" {
-		c.JSON(http.StatusBadRequest,  gin.H{"error": "Failed to cancel (Missing hotelId)"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to cancel (Missing hotelId)"})
 		return
 	}
 
 	if roomNumber == "" {
-		c.JSON(http.StatusBadRequest,  gin.H{"error": "Failed to cancel (Missing roomNumber)"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to cancel (Missing roomNumber)"})
 		return
 	}
 
@@ -378,7 +378,7 @@ func main() {
 	r.GET("/bookings", getHotelBookings)
 	r.GET("/bookings/:id", getHotelBookingByID)
 	r.DELETE("/bookings/id/:id", deleteBookingByID)
-	r.DELETE("/bookings/room/:hotelId/:roomBNumber", deleteBookingByHotelRoom)
+	r.DELETE("/bookings/room/:hotelId/:roomNumber", deleteBookingByHotelRoom)
 
 	r.Run(":3001")
 }
