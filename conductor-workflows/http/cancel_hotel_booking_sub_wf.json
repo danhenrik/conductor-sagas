@@ -1,0 +1,45 @@
+{
+  "createTime": 1734968285125,
+  "updateTime": 0,
+  "name": "cancel_hotel_booking_sub_wf",
+  "description": "Handles cancellation of a hotel booking",
+  "version": 1,
+  "tasks": [
+    {
+      "name": "cancel_hotel_booking",
+      "taskReferenceName": "cancel_hotel_booking_ref",
+      "inputParameters": {
+        "http_request": {
+          "method": "DELETE",
+          "uri": "http://host.docker.internal:3001/bookings/room/${workflow.input.hotelId}/${workflow.input.roomNumber}"
+        }
+      },
+      "type": "HTTP",
+      "decisionCases": {},
+      "defaultCase": [],
+      "forkTasks": [],
+      "startDelay": 0,
+      "joinOn": [],
+      "optional": false,
+      "defaultExclusiveJoinTask": [],
+      "asyncComplete": false,
+      "loopOver": [],
+      "onStateChange": {},
+      "permissive": false
+    }
+  ],
+  "inputParameters": [
+    "hotel",
+    "roomNumber"
+  ],
+  "outputParameters": {},
+  "schemaVersion": 2,
+  "restartable": true,
+  "workflowStatusListenerEnabled": false,
+  "ownerEmail": "example@email.com",
+  "timeoutPolicy": "ALERT_ONLY",
+  "timeoutSeconds": 0,
+  "variables": {},
+  "inputTemplate": {},
+  "enforceSchema": true
+}

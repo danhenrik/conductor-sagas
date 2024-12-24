@@ -1,0 +1,267 @@
+{
+  "createTime": 1734573149368,
+  "updateTime": 1734969608037,
+  "name": "travel_booking_http_saga_wf",
+  "description": "Travel booking workflow with saga pattern",
+  "version": 11,
+  "tasks": [
+    {
+      "name": "book_flight",
+      "taskReferenceName": "book_flight_ref",
+      "inputParameters": {
+        "http_request": {
+          "method": "POST",
+          "uri": "http://host.docker.internal:3000/bookings",
+          "body": {
+            "flightId": "${workflow.input.flightId}",
+            "customerName": "${workflow.input.customerName}",
+            "customerEmail": "${workflow.input.customerEmail}",
+            "seatNumber": "${workflow.input.seatNumber}"
+          },
+          "failWorkflow": false
+        }
+      },
+      "type": "HTTP",
+      "decisionCases": {},
+      "defaultCase": [],
+      "forkTasks": [],
+      "startDelay": 0,
+      "joinOn": [],
+      "optional": true,
+      "defaultExclusiveJoinTask": [],
+      "asyncComplete": false,
+      "loopOver": [],
+      "onStateChange": {},
+      "permissive": false
+    },
+    {
+      "name": "check_flight_booking_status",
+      "taskReferenceName": "check_flight_booking_status_ref",
+      "inputParameters": {
+        "flightBookingStatusCode": "${book_flight_ref.output.response.statusCode}"
+      },
+      "type": "SWITCH",
+      "decisionCases": {
+        "201": [
+          {
+            "name": "book_hotel",
+            "taskReferenceName": "book_hotel_ref",
+            "inputParameters": {
+              "http_request": {
+                "method": "POST",
+                "uri": "http://host.docker.internal:3001/bookings",
+                "body": {
+                  "hotelId": "${workflow.input.hotelId}",
+                  "checkInDate": "${workflow.input.checkInDate}",
+                  "checkOutDate": "${workflow.input.checkOutDate}",
+                  "customerName": "${workflow.input.customerName}",
+                  "customerEmail": "${workflow.input.customerEmail}",
+                  "roomNumber": "${workflow.input.roomNumber}"
+                }
+              }
+            },
+            "type": "HTTP",
+            "decisionCases": {},
+            "defaultCase": [],
+            "forkTasks": [],
+            "startDelay": 0,
+            "joinOn": [],
+            "optional": false,
+            "defaultExclusiveJoinTask": [],
+            "asyncComplete": false,
+            "loopOver": [],
+            "onStateChange": {},
+            "permissive": false
+          }
+        ]
+      },
+      "defaultCase": [
+        {
+          "name": "cancel_flight_booking",
+          "taskReferenceName": "cancel_flight_booking_sub_ref",
+          "inputParameters": {
+            "flightId": "${workflow.input.flightId}",
+            "seatNumber": "${workflow.input.seatNumber}"
+          },
+          "type": "SUB_WORKFLOW",
+          "decisionCases": {},
+          "defaultCase": [],
+          "forkTasks": [],
+          "startDelay": 0,
+          "subWorkflowParam": {
+            "name": "cancel_flight_booking_sub_wf",
+            "version": 1
+          },
+          "joinOn": [],
+          "optional": false,
+          "defaultExclusiveJoinTask": [],
+          "asyncComplete": false,
+          "loopOver": [],
+          "onStateChange": {},
+          "permissive": false
+        },
+        {
+          "name": "terminate_compensated_flight",
+          "taskReferenceName": "terminate_compensated_flight_ref",
+          "inputParameters": {
+            "terminationStatus": "FAILED"
+          },
+          "type": "TERMINATE",
+          "decisionCases": {},
+          "defaultCase": [],
+          "forkTasks": [],
+          "startDelay": 0,
+          "joinOn": [],
+          "optional": false,
+          "defaultExclusiveJoinTask": [],
+          "asyncComplete": false,
+          "loopOver": [],
+          "onStateChange": {},
+          "permissive": false
+        }
+      ],
+      "forkTasks": [],
+      "startDelay": 0,
+      "joinOn": [],
+      "optional": false,
+      "defaultExclusiveJoinTask": [],
+      "asyncComplete": false,
+      "loopOver": [],
+      "evaluatorType": "value-param",
+      "expression": "flightBookingStatusCode",
+      "onStateChange": {},
+      "permissive": false
+    },
+    {
+      "name": "check_hotel_booking_status",
+      "taskReferenceName": "check_hotel_booking_status_ref",
+      "inputParameters": {
+        "flightBookingStatusCode": "${book_flight_ref.output.response.statusCode}"
+      },
+      "type": "SWITCH",
+      "decisionCases": {
+        "201": [
+          {
+            "name": "terminate_successfully",
+            "taskReferenceName": "terminate_successfully_ref",
+            "inputParameters": {
+              "terminationStatus": "COMPLETED"
+            },
+            "type": "TERMINATE",
+            "decisionCases": {},
+            "defaultCase": [],
+            "forkTasks": [],
+            "startDelay": 0,
+            "joinOn": [],
+            "optional": false,
+            "defaultExclusiveJoinTask": [],
+            "asyncComplete": false,
+            "loopOver": [],
+            "onStateChange": {},
+            "permissive": false
+          }
+        ]
+      },
+      "defaultCase": [
+        {
+          "name": "cancel_hotel_booking",
+          "taskReferenceName": "cancel_hotel_booking_sub_ref",
+          "inputParameters": {
+            "hoteliD": "${workflow.input.hotelId}",
+            "roomNumber": "${workflow.input.roomNumber}"
+          },
+          "type": "SUB_WORKFLOW",
+          "decisionCases": {},
+          "defaultCase": [],
+          "forkTasks": [],
+          "startDelay": 0,
+          "subWorkflowParam": {
+            "name": "cancel_hotel_booking_sub_wf",
+            "version": 1
+          },
+          "joinOn": [],
+          "optional": false,
+          "defaultExclusiveJoinTask": [],
+          "asyncComplete": false,
+          "loopOver": [],
+          "onStateChange": {},
+          "permissive": false
+        },
+        {
+          "name": "cancel_flight_booking_2",
+          "taskReferenceName": "cancel_flight_booking_2_sub_ref",
+          "inputParameters": {
+            "flightId": "${workflow.input.flightId}",
+            "seatNumber": "${workflow.input.seatNumber}"
+          },
+          "type": "SUB_WORKFLOW",
+          "decisionCases": {},
+          "defaultCase": [],
+          "forkTasks": [],
+          "startDelay": 0,
+          "subWorkflowParam": {
+            "name": "cancel_flight_booking_sub_wf",
+            "version": 1
+          },
+          "joinOn": [],
+          "optional": false,
+          "defaultExclusiveJoinTask": [],
+          "asyncComplete": false,
+          "loopOver": [],
+          "onStateChange": {},
+          "permissive": false
+        },
+        {
+          "name": "terminate_compensated_all",
+          "taskReferenceName": "terminate_compensated_all_ref",
+          "inputParameters": {
+            "terminationStatus": "FAILED"
+          },
+          "type": "TERMINATE",
+          "decisionCases": {},
+          "defaultCase": [],
+          "forkTasks": [],
+          "startDelay": 0,
+          "joinOn": [],
+          "optional": false,
+          "defaultExclusiveJoinTask": [],
+          "asyncComplete": false,
+          "loopOver": [],
+          "onStateChange": {},
+          "permissive": false
+        }
+      ],
+      "forkTasks": [],
+      "startDelay": 0,
+      "joinOn": [],
+      "optional": false,
+      "defaultExclusiveJoinTask": [],
+      "asyncComplete": false,
+      "loopOver": [],
+      "evaluatorType": "value-param",
+      "expression": "flightBookingStatusCode",
+      "onStateChange": {},
+      "permissive": false
+    }
+  ],
+  "inputParameters": [
+    "flightId",
+    "customerName",
+    "customerEmail",
+    "seatNumber",
+    "hotelId",
+    "checkInDate",
+    "checkOutDate",
+    "roomNumber"
+  ],
+  "outputParameters": {},
+  "schemaVersion": 2,
+  "restartable": true,
+  "workflowStatusListenerEnabled": false,
+  "ownerEmail": "example@email.com",
+  "timeoutPolicy": "ALERT_ONLY",
+  "timeoutSeconds": 0,
+  "variables": {},
+  "inputTemplate": {},
+  "enforceSchema": true
+}

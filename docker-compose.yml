@@ -103,15 +103,12 @@ services:
     depends_on:
       - database-flight
       - database-hotel
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: always
     ports:
       - "3002:8080"
-    networks:
-      - hotel
-      - flight
 
 volumes:
   pg-data-flight:
   pg-data-hotel:
-
-networks:

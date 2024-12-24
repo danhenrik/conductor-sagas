@@ -1,0 +1,45 @@
+{
+    "createTime": 1734966629886,
+    "updateTime": 0,
+    "name": "cancel_flight_booking_sub_wf",
+    "description": "Handles cancellation of a flight booking",
+    "version": 1,
+    "tasks": [
+      {
+        "name": "cancel_flight_booking",
+        "taskReferenceName": "cancel_flight_booking_ref",
+        "inputParameters": {
+          "http_request": {
+            "method": "DELETE",
+            "uri": "http://host.docker.internal:3000/bookings/seat/${workflow.input.flightId}/${workflow.input.seatNumber}"
+          }
+        },
+        "type": "HTTP",
+        "decisionCases": {},
+        "defaultCase": [],
+        "forkTasks": [],
+        "startDelay": 0,
+        "joinOn": [],
+        "optional": false,
+        "defaultExclusiveJoinTask": [],
+        "asyncComplete": false,
+        "loopOver": [],
+        "onStateChange": {},
+        "permissive": false
+      }
+    ],
+    "inputParameters": [
+      "flightId",
+      "seatNumber"
+    ],
+    "outputParameters": {},
+    "schemaVersion": 2,
+    "restartable": true,
+    "workflowStatusListenerEnabled": false,
+    "ownerEmail": "example@email.com",
+    "timeoutPolicy": "ALERT_ONLY",
+    "timeoutSeconds": 0,
+    "variables": {},
+    "inputTemplate": {},
+    "enforceSchema": true
+  }
