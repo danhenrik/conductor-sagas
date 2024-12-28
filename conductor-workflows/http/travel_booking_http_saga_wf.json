@@ -136,7 +136,7 @@
       "name": "check_hotel_booking_status",
       "taskReferenceName": "check_hotel_booking_status_ref",
       "inputParameters": {
-        "flightBookingStatusCode": "${book_flight_ref.output.response.statusCode}"
+        "hotelBookingStatusCode": "${book_hotel_ref.output.response.statusCode}"
       },
       "type": "SWITCH",
       "decisionCases": {
@@ -239,7 +239,7 @@
       "asyncComplete": false,
       "loopOver": [],
       "evaluatorType": "value-param",
-      "expression": "flightBookingStatusCode",
+      "expression": "hotelBookingStatusCode",
       "onStateChange": {},
       "permissive": false
     }
