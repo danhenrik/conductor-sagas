@@ -1,9 +1,9 @@
 {
   "createTime": 1735415195759,
-  "updateTime": 1735425696929,
+  "updateTime": 1735438725741,
   "name": "travel_booking_worker_saga_wf",
   "description": "Travel booking workflow with saga pattern",
-  "version": 5,
+  "version": 6,
   "tasks": [
     {
       "name": "book_flight",
@@ -35,19 +35,34 @@
       },
       "type": "SWITCH",
       "decisionCases": {
-        "true": [
+        "false": [
           {
-            "name": "book_hotel",
-            "taskReferenceName": "book_hotel_ref",
+            "name": "cancel_flight_booking",
+            "taskReferenceName": "cancel_flight_booking_sub_ref",
             "inputParameters": {
-              "hotelId": "${workflow.input.hotelId}",
-              "checkInDate": "${workflow.input.checkInDate}",
-              "checkOutDate": "${workflow.input.checkOutDate}",
-              "customerName": "${workflow.input.customerName}",
-              "customerEmail": "${workflow.input.customerEmail}",
-              "roomNumber": "${workflow.input.roomNumber}"
+              "flightId": "${workflow.input.flightId}",
+              "seatNumber": "${workflow.input.seatNumber}"
             },
             "type": "SIMPLE",
+            "decisionCases": {},
+            "defaultCase": [],
+            "forkTasks": [],
+            "startDelay": 0,
+            "joinOn": [],
+            "optional": false,
+            "defaultExclusiveJoinTask": [],
+            "asyncComplete": false,
+            "loopOver": [],
+            "onStateChange": {},
+            "permissive": false
+          },
+          {
+            "name": "terminate_compensated_flight",
+            "taskReferenceName": "terminate_compensated_flight_ref",
+            "inputParameters": {
+              "terminationStatus": "FAILED"
+            },
+            "type": "TERMINATE",
             "decisionCases": {},
             "defaultCase": [],
             "forkTasks": [],
@@ -62,47 +77,7 @@
           }
         ]
       },
-      "defaultCase": [
-        {
-          "name": "cancel_flight_booking",
-          "taskReferenceName": "cancel_flight_booking_sub_ref",
-          "inputParameters": {
-            "flightId": "${workflow.input.flightId}",
-            "seatNumber": "${workflow.input.seatNumber}"
-          },
-          "type": "SIMPLE",
-          "decisionCases": {},
-          "defaultCase": [],
-          "forkTasks": [],
-          "startDelay": 0,
-          "joinOn": [],
-          "optional": false,
-          "defaultExclusiveJoinTask": [],
-          "asyncComplete": false,
-          "loopOver": [],
-          "onStateChange": {},
-          "permissive": false
-        },
-        {
-          "name": "terminate_compensated_flight",
-          "taskReferenceName": "terminate_compensated_flight_ref",
-          "inputParameters": {
-            "terminationStatus": "FAILED"
-          },
-          "type": "TERMINATE",
-          "decisionCases": {},
-          "defaultCase": [],
-          "forkTasks": [],
-          "startDelay": 0,
-          "joinOn": [],
-          "optional": false,
-          "defaultExclusiveJoinTask": [],
-          "asyncComplete": false,
-          "loopOver": [],
-          "onStateChange": {},
-          "permissive": false
-        }
-      ],
+      "defaultCase": [],
       "forkTasks": [],
       "startDelay": 0,
       "joinOn": [],
@@ -112,6 +87,30 @@
       "loopOver": [],
       "evaluatorType": "value-param",
       "expression": "flightBookingSuccessfull",
+      "onStateChange": {},
+      "permissive": false
+    },
+    {
+      "name": "book_hotel",
+      "taskReferenceName": "book_hotel_ref",
+      "inputParameters": {
+        "hotelId": "${workflow.input.hotelId}",
+        "checkInDate": "${workflow.input.checkInDate}",
+        "checkOutDate": "${workflow.input.checkOutDate}",
+        "customerName": "${workflow.input.customerName}",
+        "customerEmail": "${workflow.input.customerEmail}",
+        "roomNumber": "${workflow.input.roomNumber}"
+      },
+      "type": "SIMPLE",
+      "decisionCases": {},
+      "defaultCase": [],
+      "forkTasks": [],
+      "startDelay": 0,
+      "joinOn": [],
+      "optional": false,
+      "defaultExclusiveJoinTask": [],
+      "asyncComplete": false,
+      "loopOver": [],
       "onStateChange": {},
       "permissive": false
     },
