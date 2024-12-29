@@ -1,5 +1,5 @@
 {
-  "createTime": 1734968285125,
+  "createTime": 1735499233992,
   "updateTime": 0,
   "name": "cancel_hotel_booking_sub_wf",
   "description": "Handles cancellation of a hotel booking",
@@ -11,7 +11,7 @@
       "inputParameters": {
         "http_request": {
           "method": "DELETE",
-          "uri": "http://host.docker.internal:3001/bookings/room/${workflow.input.hotelId}/${workflow.input.roomNumber}"
+          "uri": "http://localhost:3001/bookings/room/${workflow.input.hotelId}/${workflow.input.roomNumber}"
         }
       },
       "type": "HTTP",
@@ -29,7 +29,7 @@
     }
   ],
   "inputParameters": [
-    "hotel",
+    "hotelId",
     "roomNumber"
   ],
   "outputParameters": {},
