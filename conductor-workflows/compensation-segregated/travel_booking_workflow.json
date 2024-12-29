@@ -1,0 +1,68 @@
+{
+    "createTime": 1735503312330,
+    "updateTime": 1735504280646,
+    "name": "travel_booking_workflow",
+    "description": "Workflow for booking flights and hotels",
+    "version": 4,
+    "tasks": [
+      {
+        "name": "book_flight",
+        "taskReferenceName": "book_flight_ref",
+        "inputParameters": {
+          "flightId": "${workflow.input.flightId}",
+          "customerName": "${workflow.input.customerName}",
+          "customerEmail": "${workflow.input.customerEmail}",
+          "seatNumber": "${workflow.input.seatNumber}"
+        },
+        "type": "SIMPLE",
+        "decisionCases": {},
+        "defaultCase": [],
+        "forkTasks": [],
+        "startDelay": 0,
+        "joinOn": [],
+        "optional": false,
+        "defaultExclusiveJoinTask": [],
+        "asyncComplete": false,
+        "loopOver": [],
+        "onStateChange": {},
+        "permissive": false
+      },
+      {
+        "name": "book_hotel",
+        "taskReferenceName": "book_hotel_ref",
+        "inputParameters": {
+          "hotelId": "${workflow.input.hotelId}",
+          "checkInDate": "${workflow.input.checkInDate}",
+          "checkOutDate": "${workflow.input.checkOutDate}",
+          "customerName": "${workflow.input.customerName}",
+          "customerEmail": "${workflow.input.customerEmail}",
+          "roomNumber": "${workflow.input.roomNumber}"
+        },
+        "type": "SIMPLE",
+        "decisionCases": {},
+        "defaultCase": [],
+        "forkTasks": [],
+        "startDelay": 0,
+        "joinOn": [],
+        "optional": false,
+        "defaultExclusiveJoinTask": [],
+        "asyncComplete": false,
+        "loopOver": [],
+        "onStateChange": {},
+        "permissive": false
+      }
+    ],
+    "inputParameters": [
+      "failedTaskName"
+    ],
+    "outputParameters": {},
+    "schemaVersion": 2,
+    "restartable": true,
+    "workflowStatusListenerEnabled": false,
+    "ownerEmail": "example@email.com",
+    "timeoutPolicy": "ALERT_ONLY",
+    "timeoutSeconds": 0,
+    "variables": {},
+    "inputTemplate": {},
+    "enforceSchema": true
+  }

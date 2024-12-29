@@ -1,0 +1,99 @@
+{
+    "createTime": 1735504148733,
+    "updateTime": 1735504103388,
+    "name": "compensate_travel_booking_workflow",
+    "description": "Workflow for booking flights and hotels",
+    "version": 1,
+    "tasks": [
+      {
+        "name": "decide_compensation",
+        "taskReferenceName": "decide_compensation_ref",
+        "inputParameters": {
+          "flightBookingStatusCode": "${workflow.input.failedTaskName}"
+        },
+        "type": "SWITCH",
+        "decisionCases": {
+          "book_flight": [
+            {
+              "name": "cancel_flight_booking",
+              "taskReferenceName": "cancel_flight_booking_task",
+              "inputParameters": {},
+              "type": "SIMPLE",
+              "decisionCases": {},
+              "defaultCase": [],
+              "forkTasks": [],
+              "startDelay": 0,
+              "joinOn": [],
+              "optional": false,
+              "defaultExclusiveJoinTask": [],
+              "asyncComplete": false,
+              "loopOver": [],
+              "onStateChange": {},
+              "permissive": false
+            }
+          ],
+          "book_hotel": [
+            {
+              "name": "cancel_flight_booking",
+              "taskReferenceName": "cancel_flight_booking_task1",
+              "inputParameters": {},
+              "type": "SIMPLE",
+              "decisionCases": {},
+              "defaultCase": [],
+              "forkTasks": [],
+              "startDelay": 0,
+              "joinOn": [],
+              "optional": false,
+              "defaultExclusiveJoinTask": [],
+              "asyncComplete": false,
+              "loopOver": [],
+              "onStateChange": {},
+              "permissive": false
+            },
+            {
+              "name": "cancel_hotel_booking",
+              "taskReferenceName": "cancel_hotel_booking_task2",
+              "inputParameters": {},
+              "type": "SIMPLE",
+              "decisionCases": {},
+              "defaultCase": [],
+              "forkTasks": [],
+              "startDelay": 0,
+              "joinOn": [],
+              "optional": false,
+              "defaultExclusiveJoinTask": [],
+              "asyncComplete": false,
+              "loopOver": [],
+              "onStateChange": {},
+              "permissive": false
+            }
+          ]
+        },
+        "defaultCase": [],
+        "forkTasks": [],
+        "startDelay": 0,
+        "joinOn": [],
+        "optional": false,
+        "defaultExclusiveJoinTask": [],
+        "asyncComplete": false,
+        "loopOver": [],
+        "evaluatorType": "value-param",
+        "expression": "flightBookingStatusCode",
+        "onStateChange": {},
+        "permissive": false
+      }
+    ],
+    "inputParameters": [
+      "failedTaskName"
+    ],
+    "outputParameters": {},
+    "schemaVersion": 2,
+    "restartable": true,
+    "workflowStatusListenerEnabled": false,
+    "ownerEmail": "example@email.com",
+    "timeoutPolicy": "ALERT_ONLY",
+    "timeoutSeconds": 0,
+    "variables": {},
+    "inputTemplate": {},
+    "enforceSchema": true
+  }

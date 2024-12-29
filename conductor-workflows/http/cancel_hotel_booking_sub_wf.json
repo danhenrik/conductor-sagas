@@ -1,5 +1,5 @@
 {
-  "createTime": 1734968285125,
+  "createTime": 1735499233992,
   "updateTime": 0,
   "name": "cancel_hotel_booking_sub_wf",
   "description": "Handles cancellation of a hotel booking",
@@ -29,7 +29,7 @@
     }
   ],
   "inputParameters": [
-    "hotel",
+    "hotelId",
     "roomNumber"
   ],
   "outputParameters": {},
