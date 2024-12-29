@@ -11,7 +11,7 @@
       "inputParameters": {
         "http_request": {
           "method": "DELETE",
-          "uri": "http://localhost:3000/bookings/seat/${workflow.input.flightId}/${workflow.input.seatNumber}"
+          "uri": "http://host.docker.internal:3000/bookings/seat/${workflow.input.flightId}/${workflow.input.seatNumber}"
         }
       },
       "type": "HTTP",

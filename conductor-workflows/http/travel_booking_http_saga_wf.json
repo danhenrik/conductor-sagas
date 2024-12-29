@@ -11,7 +11,7 @@
       "inputParameters": {
         "http_request": {
           "method": "POST",
-          "uri": "http://localhost:3000/bookings",
+          "uri": "http://host.docker.internal:3000/bookings",
           "body": {
             "flightId": "${workflow.input.flightId}",
             "customerName": "${workflow.input.customerName}",
@@ -49,7 +49,7 @@
             "inputParameters": {
               "http_request": {
                 "method": "POST",
-                "uri": "http://localhost:3001/bookings",
+                "uri": "http://host.docker.internal:3001/bookings",
                 "body": {
                   "hotelId": "${workflow.input.hotelId}",
                   "checkInDate": "${workflow.input.checkInDate}",

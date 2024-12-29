@@ -11,7 +11,7 @@
       "inputParameters": {
         "http_request": {
           "method": "DELETE",
-          "uri": "http://localhost:3001/bookings/room/${workflow.input.hotelId}/${workflow.input.roomNumber}"
+          "uri": "http://host.docker.internal:3001/bookings/room/${workflow.input.hotelId}/${workflow.input.roomNumber}"
         }
       },
       "type": "HTTP",
