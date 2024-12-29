@@ -1,9 +1,9 @@
 {
-  "createTime": 1734573149368,
-  "updateTime": 1734969608037,
+  "createTime": 1735499448650,
+  "updateTime": 1735499670496,
   "name": "travel_booking_http_saga_wf",
   "description": "Travel booking workflow with saga pattern",
-  "version": 11,
+  "version": 3,
   "tasks": [
     {
       "name": "book_flight",
@@ -11,7 +11,7 @@
       "inputParameters": {
         "http_request": {
           "method": "POST",
-          "uri": "http://host.docker.internal:3000/bookings",
+          "uri": "http://localhost:3000/bookings",
           "body": {
             "flightId": "${workflow.input.flightId}",
             "customerName": "${workflow.input.customerName}",
@@ -49,7 +49,7 @@
             "inputParameters": {
               "http_request": {
                 "method": "POST",
-                "uri": "http://host.docker.internal:3001/bookings",
+                "uri": "http://localhost:3001/bookings",
                 "body": {
                   "hotelId": "${workflow.input.hotelId}",
                   "checkInDate": "${workflow.input.checkInDate}",
@@ -66,7 +66,7 @@
             "forkTasks": [],
             "startDelay": 0,
             "joinOn": [],
-            "optional": false,
+            "optional": true,
             "defaultExclusiveJoinTask": [],
             "asyncComplete": false,
             "loopOver": [],
