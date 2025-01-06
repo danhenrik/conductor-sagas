@@ -1,9 +1,9 @@
 {
-  "createTime": 1735503312330,
-  "updateTime": 1735504710512,
+  "createTime": 1736132065537,
+  "updateTime": 1736134549623,
   "name": "travel_booking_workflow",
   "description": "Workflow for booking flights and hotels",
-  "version": 5,
+  "version": 7,
   "tasks": [
     {
       "name": "book_flight",
@@ -28,6 +28,52 @@
       "permissive": false
     },
     {
+      "name": "validate_flight",
+      "taskReferenceName": "validate_flight_ref",
+      "inputParameters": {
+        "successfull": "${book_flight_ref.output.Success}"
+      },
+      "type": "SWITCH",
+      "decisionCases": {
+        "false": [
+          {
+            "name": "terminate_flight",
+            "taskReferenceName": "terminate_flight_ref",
+            "inputParameters": {
+              "terminationStatus": "FAILED",
+              "workflowOutput": {
+                "taskFailed": "book_flight"
+              }
+            },
+            "type": "TERMINATE",
+            "decisionCases": {},
+            "defaultCase": [],
+            "forkTasks": [],
+            "startDelay": 0,
+            "joinOn": [],
+            "optional": false,
+            "defaultExclusiveJoinTask": [],
+            "asyncComplete": false,
+            "loopOver": [],
+            "onStateChange": {},
+            "permissive": false
+          }
+        ]
+      },
+      "defaultCase": [],
+      "forkTasks": [],
+      "startDelay": 0,
+      "joinOn": [],
+      "optional": false,
+      "defaultExclusiveJoinTask": [],
+      "asyncComplete": false,
+      "loopOver": [],
+      "evaluatorType": "value-param",
+      "expression": "successfull",
+      "onStateChange": {},
+      "permissive": false
+    },
+    {
       "name": "book_hotel",
       "taskReferenceName": "book_hotel_ref",
       "inputParameters": {
@@ -48,6 +94,52 @@
       "defaultExclusiveJoinTask": [],
       "asyncComplete": false,
       "loopOver": [],
+      "onStateChange": {},
+      "permissive": false
+    },
+    {
+      "name": "validate_hotel",
+      "taskReferenceName": "validate_hotel_ref",
+      "inputParameters": {
+        "successfull": "${book_hotel_ref.output.Success}"
+      },
+      "type": "SWITCH",
+      "decisionCases": {
+        "false": [
+          {
+            "name": "terminate_hotel",
+            "taskReferenceName": "terminate_hotel_ref",
+            "inputParameters": {
+              "terminationStatus": "FAILED",
+              "workflowOutput": {
+                "taskFailed": "book_hotel"
+              }
+            },
+            "type": "TERMINATE",
+            "decisionCases": {},
+            "defaultCase": [],
+            "forkTasks": [],
+            "startDelay": 0,
+            "joinOn": [],
+            "optional": false,
+            "defaultExclusiveJoinTask": [],
+            "asyncComplete": false,
+            "loopOver": [],
+            "onStateChange": {},
+            "permissive": false
+          }
+        ]
+      },
+      "defaultCase": [],
+      "forkTasks": [],
+      "startDelay": 0,
+      "joinOn": [],
+      "optional": false,
+      "defaultExclusiveJoinTask": [],
+      "asyncComplete": false,
+      "loopOver": [],
+      "evaluatorType": "value-param",
+      "expression": "successfull",
       "onStateChange": {},
       "permissive": false
     }
