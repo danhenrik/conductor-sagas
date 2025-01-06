@@ -1,0 +1,86 @@
+{
+    "createTime": 1736132929098,
+    "updateTime": 1735499670496,
+    "name": "travel_booking_segregated_saga_wf",
+    "description": "Travel booking workflow with saga pattern",
+    "version": 1,
+    "tasks": [
+      {
+        "name": "success_wf",
+        "taskReferenceName": "success_wf_ref",
+        "inputParameters": {
+          "flightId": "${workflow.input.flightId}",
+          "seatNumber": "${workflow.input.seatNumber}",
+          "hotelId": "${workflow.input.hotelId}",
+          "roomNumber": "${workflow.input.roomNumber}",
+          "checkInDate": "${workflow.input.checkInDate}",
+          "checkOutDate": "${workflow.input.checkOutDate}",
+          "customerName": "${workflow.input.customerName}",
+          "customerEmail": "${workflow.input.customerEmail}"
+        },
+        "type": "SUB_WORKFLOW",
+        "decisionCases": {},
+        "defaultCase": [],
+        "forkTasks": [],
+        "startDelay": 0,
+        "subWorkflowParam": {
+          "name": "travel_booking_workflow",
+          "version": 1
+        },
+        "joinOn": [],
+        "optional": true,
+        "defaultExclusiveJoinTask": [],
+        "asyncComplete": false,
+        "loopOver": [],
+        "onStateChange": {},
+        "permissive": false
+      },
+      {
+        "name": "failure_wf",
+        "taskReferenceName": "failure_wf_ref",
+        "inputParameters": {
+          "failedTaskName": "book_hotel",
+          "hotelID": "${workflow.input.hotelId}",
+          "roomNumber": "${workflow.input.roomNumber}",
+          "flightID": "${workflow.input.flightId}",
+          "seatNumber": "${workflow.input.seatNumber}"
+        },
+        "type": "SUB_WORKFLOW",
+        "decisionCases": {},
+        "defaultCase": [],
+        "forkTasks": [],
+        "startDelay": 0,
+        "subWorkflowParam": {
+          "name": "compensate_travel_booking_workflow",
+          "version": 2
+        },
+        "joinOn": [],
+        "optional": false,
+        "defaultExclusiveJoinTask": [],
+        "asyncComplete": false,
+        "loopOver": [],
+        "onStateChange": {},
+        "permissive": false
+      }
+    ],
+    "inputParameters": [
+      "flightId",
+      "customerName",
+      "customerEmail",
+      "seatNumber",
+      "hotelId",
+      "checkInDate",
+      "checkOutDate",
+      "roomNumber"
+    ],
+    "outputParameters": {},
+    "schemaVersion": 2,
+    "restartable": true,
+    "workflowStatusListenerEnabled": false,
+    "ownerEmail": "example@email.com",
+    "timeoutPolicy": "ALERT_ONLY",
+    "timeoutSeconds": 0,
+    "variables": {},
+    "inputTemplate": {},
+    "enforceSchema": true
+  }
