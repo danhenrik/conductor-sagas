@@ -14,8 +14,10 @@ services:
       - PG_DATABASE=saga-flight
       - PG_USER=saga-flight
       - PG_PASSWORD=saga-flight
-    ports:
-      - "3000:3000"
+      - DD_SERVICE=flight-service
+      - DD_VERSION=1
+      - DD_AGENT_HOST=localhost
+      - DD_TRACE_AGENT_PORT=8226
     network_mode:  host
     depends_on:
       - database-flight
@@ -61,8 +63,10 @@ services:
       - PG_DATABASE=saga-hotel
       - PG_USER=saga-hotel
       - PG_PASSWORD=saga-hotel
-    ports:
-      - "3001:3001"
+      - DD_SERVICE=hotel-service
+      - DD_VERSION=1
+      - DD_AGENT_HOST=localhost
+      - DD_TRACE_AGENT_PORT=8226
     network_mode:  host
     depends_on:
       - database-hotel
@@ -97,6 +101,23 @@ services:
   ### Shared ###
   ##############
 
+  datadog-agent:
+    image: datadog/agent:latest
+    # network_mode: host 
+    environment:
+      - DD_API_KEY=c81ec4bbbbc6d3939ab3779b0ef6735c
+      - DD_HOSTNAME=hotel-server
+      - DD_SITE=us5.datadoghq.com
+      - DD_APM_ENABLED=true
+      - DD_APM_NON_LOCAL_TRAFFIC=true
+      - DD_LOGS_ENABLED=false
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+    networks:
+      - apps
+    
   adminer:
     container_name: adminer
     image: adminer:4
@@ -112,3 +133,5 @@ services:
 volumes:
   pg-data-flight:
   pg-data-hotel:
+networks:
+  apps:
