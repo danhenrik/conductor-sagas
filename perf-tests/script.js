@@ -1,45 +1,57 @@
 import http from "k6/http";
-import { check, sleep } from "k6";
 import { SharedArray } from "k6/data";
-import { Counter } from "k6/metrics";
-import papaparse from './node_modules/papaparse/papaparse.js'; 
+import { sleep } from 'k6';
+import papaparse from "./node_modules/papaparse/papaparse.js";
 
 const CONDUCTOR_URL = "http://localhost:8080/api/workflow";
-const BATCH_COUNT = 40_000; 
+const BATCH_COUNT = 500;
+const WORKFLOW_NAME = "travel_booking_http_saga_wf";
+const WORKFLOW_VERSION = 1;
 
 export let options = {
-  vus: 50,
-  duration: "30s",
+  vus: BATCH_COUNT,
+  iterations: BATCH_COUNT, // Guarantees that each VU will process once
 };
-
-const globalIndex = new Counter("globalIndex");
 
 const batchFiles = new SharedArray("batchFiles", function () {
   var files = new Array();
   for (let i = 0; i < BATCH_COUNT; i++) {
-    files.push(`batches/batch-${i}.csv`);
+    var fileData = open(`batches/batch-${i}.csv`);
+    files.push(fileData);
   }
+
   return files;
 });
 
 export default function () {
-  const currentIndex = globalIndex.add(1) - 1;
-  if (currentIndex >= batchFiles.length) {
-    process.exit(0);
-  }
+  const currentIndex  = ((__VU - 1));
 
-  const batchFile = batchFiles[currentIndex];
-  console.log(batchFile);
-  if (batchFile) {
-    const csvData = open(batchFile);
+  const csvData = batchFiles[currentIndex];
+  if (csvData) {
     const parsedData = papaparse.parse(csvData, { header: true }).data;
     for (const data of parsedData) {
-      let res = http.post(CONDUCTOR_URL, data);
-      check(res, { "status was 200": (r) => r.status === 200 });
-      sleep(1);
-      logWithTimestamp(
-        `Response Status: ${response.status}.\n Response body: ${response.body}`
+      let requestBody = {
+        name: WORKFLOW_NAME,
+        version: WORKFLOW_VERSION,
+        input: data,
+      };
+
+      let res = http.post(
+        CONDUCTOR_URL,
+        JSON.stringify(requestBody, (key, value) =>
+          isNaN(value) ? value : +value
+        ),
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
+
+      logWithTimestamp(
+        `Response Status: ${res.status} for index ${currentIndex}.\n ExecutionId: ${res.body}`
+      );
+      sleep(1)
     }
   } else {
     logWithTimestamp("Fila de batches vazia!");

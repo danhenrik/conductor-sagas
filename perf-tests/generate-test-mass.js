@@ -1,5 +1,4 @@
 const axios = require("axios");
-const { v4: uuidv4 } = require("uuid");
 const { faker } = require("@faker-js/faker");
 const fs = require("fs");
 
@@ -22,9 +21,7 @@ async function createFlights() {
 
   let ids = [];
   for (let i = 0; i < numFlights; i++) {
-    const flightId = uuidv4();
     const flightData = {
-      id: flightId,
       airline: faker.helpers.arrayElement(airlines),
       origin: faker.helpers.arrayElement(origins), // Cidade de origem aleatória
       destination: faker.helpers.arrayElement(destinations), // Cidade de destino aleatória
@@ -35,6 +32,7 @@ async function createFlights() {
 
     try {
       const response = await axios.post(flightUrl, flightData);
+      var flightId = response.data.flightId;
       console.log(`"${flightId}" - Flight criado com sucesso!`);
       ids.push(flightId);
     } catch (error) {
@@ -47,9 +45,7 @@ async function createFlights() {
 async function createHotels() {
   let ids = [];
   for (let i = 0; i < numHotels; i++) {
-    const hotelId = uuidv4();
     const hotelData = {
-      id: hotelId,
       name: faker.company.name(),
       location: `${faker.location.city()}, ${faker.location.state()}`,
       rating: faker.number.int({ min: 1, max: 5 }),
@@ -58,6 +54,7 @@ async function createHotels() {
 
     try {
       const response = await axios.post(hotelUrl, hotelData);
+      var hotelId = response.data.hotelId;
       console.log(`"${hotelId}" - Hotel criado com sucesso!`);
       ids.push(hotelId);
     } catch (error) {
@@ -74,37 +71,35 @@ function generateBatches(batchSize, flightIds, hotelIds) {
   let seatNumber = 1;
   let roomNumber = 1;
 
-  while (flightIndex < 1) {
-    const batch = [];
-    for (let j = 0; j < batchSize; j++) {
-      const flightId = flightIds[flightIndex % flightIds.length];
-      const hotelId = hotelIds[hotelIndex % hotelIds.length];
+  const batch = [];
+  for (let j = 0; j < batchSize; j++) {
+    const flightId = flightIds[flightIndex % flightIds.length];
+    const hotelId = hotelIds[hotelIndex % hotelIds.length];
 
-      batch.push({
-        flightId: flightId,
-        hotelId: hotelId,
-        customerName: faker.person.firstName(),
-        customerEmail: faker.internet.email(),
-        seatNumber: seatNumber,
-        checkInDate: faker.date.future().toISOString(),
-        checkOutDate: faker.date.future().toISOString(),
-        roomNumber: roomNumber,
-      });
+    batch.push({
+      flightId: flightId,
+      hotelId: hotelId,
+      customerName: faker.person.firstName(),
+      customerEmail: faker.internet.email(),
+      seatNumber: seatNumber,
+      checkInDate: faker.date.future().toISOString(),
+      checkOutDate: faker.date.future().toISOString(),
+      roomNumber: roomNumber,
+    });
 
-      seatNumber++;
-      if (seatNumber > 400) {
-        seatNumber = 1;
-        flightIndex++;
-      }
-
-      roomNumber++;
-      if (roomNumber > 100) {
-        roomNumber = 1;
-        hotelIndex++;
-      }
+    seatNumber++;
+    if (seatNumber > 400) {
+      seatNumber = 1;
+      flightIndex++;
     }
-    batches.push(batch);
+
+    roomNumber++;
+    if (roomNumber > 100) {
+      roomNumber = 1;
+      hotelIndex++;
+    }
   }
+  batches.push(batch);
   return batches;
 }
 
@@ -128,30 +123,48 @@ function saveBatch(batch) {
 var batchIndex = 0;
 
 (async () => {
-  var totalRequestCount = process.argv[2];
-  var requestCount;
-  if (!totalRequestCount) {
-    requestCount = 40_000;
-    console.log("Generating with default RequestCount: ", requestCount);
-  } else {
-    if(totalRequestCount % 400 != 0) {
-      console.error("Total request count must be a multiple of 400.");
-      console.log("node generate-test-mass.js <TotalRequestCount>");
-      process.exit(1);
-    } 
-    requestCount = totalRequestCount;
+  var requestCount = process.argv[2];
+  if (!requestCount) {
+    console.log(
+      "node generate-test-mass.js <TotalRequestCount> <TotalBatchCount>"
+    );
+    process.exit(1);
   }
 
-  for (let i = 0; i < requestCount; i += 400) {
+  var batchCount = process.argv[3];
+  if (!batchCount) {
+    console.log(
+      "node generate-test-mass.js <TotalRequestCount> <TotalBatchCount>"
+    );
+    process.exit(1);
+  }
+
+  var batchSize = requestCount / batchCount;
+  if (batchSize > 400) {
+    console.log("Batch size must be less than 400");
+    process.exit(1);
+  }
+
+  // Clean up batches directory
+  fs.rmdirSync("batches", { recursive: true });
+  fs.mkdirSync("batches");
+
+  // Generate successful batches
+  let successRequestCount = requestCount * (4 / 5);
+  for (let i = 0; i < successRequestCount; i += batchSize) {
     let flightIds = await createFlights();
     let hotelIds = await createHotels();
 
-    //  Gerar arquivos CSV dividindo o cadastro de bookings entre os usuários
-    fs.rmdirSync("batches", { recursive: true });
-    fs.mkdirSync("batches");
+    var batches = generateBatches(batchSize, flightIds, hotelIds);
+    batches.forEach(saveBatch);
+  }
 
-    var defaultBatchSize = 100;
-    var batches = generateBatches(defaultBatchSize, flightIds, hotelIds);
+  // Generate failing batches
+  let failRequestCount = requestCount * (1 / 5);
+  for (let i = 0; i < failRequestCount; i += batchSize) {
+    let flightIds = await createFlights();
+    let hotelIds = new Array(flightIds.length).fill("invalid-hotel-id");
+    var batches = generateBatches(batchSize, flightIds, hotelIds);
     batches.forEach(saveBatch);
   }
 })();
