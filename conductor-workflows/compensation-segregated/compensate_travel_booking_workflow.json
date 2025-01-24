@@ -3,7 +3,7 @@
   "updateTime": 1736134768056,
   "name": "compensate_travel_booking_workflow",
   "description": "Workflow for booking flights and hotels",
-  "version": 4,
+  "version": 1,
   "tasks": [
     {
       "name": "decide_compensation",

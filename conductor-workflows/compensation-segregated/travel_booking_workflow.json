@@ -3,7 +3,7 @@
   "updateTime": 1736134549623,
   "name": "travel_booking_workflow",
   "description": "Workflow for booking flights and hotels",
-  "version": 7,
+  "version": 1,
   "tasks": [
     {
       "name": "book_flight",

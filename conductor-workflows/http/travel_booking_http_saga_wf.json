@@ -3,7 +3,7 @@
   "updateTime": 1735499670496,
   "name": "travel_booking_http_saga_wf",
   "description": "Travel booking workflow with saga pattern",
-  "version": 3,
+  "version": 1,
   "tasks": [
     {
       "name": "book_flight",
