@@ -129,3 +129,7 @@ services:
 volumes:
   pg-data-flight:
   pg-data-hotel:
+
+networks:
+  apps:
+    driver: bridge

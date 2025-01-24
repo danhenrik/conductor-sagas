@@ -2,11 +2,16 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/conductor-sdk/conductor-go/sdk/client"
+	"github.com/conductor-sdk/conductor-go/sdk/model"
+	"github.com/conductor-sdk/conductor-go/sdk/settings"
+	"github.com/conductor-sdk/conductor-go/sdk/worker"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -183,41 +188,100 @@ func deleteFlight(c *gin.Context) {
 }
 
 // HotelBooking
-func createHotelBooking(c *gin.Context) {
+type TaskOutput struct {
+	Data      map[string]string
+	Success   bool
+	ErrorCode int
+}
+
+func successOutput(data ...map[string]string) (*TaskOutput, error) {
+	if len(data) != 1 {
+		data = append(data, map[string]string{})
+	}
+
+	return &TaskOutput{
+		Data:      data[0],
+		Success:   true,
+		ErrorCode: 0,
+	}, nil
+}
+
+func errorOutput(err error, errorCode ...int) (*TaskOutput, error) {
+	if len(errorCode) != 1 {
+		errorCode = append(errorCode, 1)
+	}
+
+	return &TaskOutput{
+		Data:      map[string]string{"error": err.Error()},
+		Success:   false,
+		ErrorCode: errorCode[0],
+	}, nil
+}
+
+func createHotelBookingWorker(task *model.Task) (interface{}, error) {
+	println("Received createBooking simple task")
+
+	hotelID := task.InputData["hotelId"].(string)
+	checkInDate, _ := time.Parse(time.RFC3339, task.InputData["checkInDate"].(string))
+	checkOutDate, _ := time.Parse(time.RFC3339, task.InputData["checkOutDate"].(string))
+	customerName := task.InputData["customerName"].(string)
+	customerEmail := task.InputData["customerEmail"].(string)
+	roomNumber := int(task.InputData["roomNumber"].(float64))
+
+	newBooking, err := createHotelBooking(hotelID, checkInDate, checkOutDate, customerName, customerEmail, roomNumber)
+	if err != nil {
+		println(err.Error())
+		return errorOutput(err)
+	}
+
+	body := map[string]string{
+		"bookingId":     newBooking.BookingID,
+		"bookingStatus": string(newBooking.BookingStatus),
+		"bookingTime":   newBooking.BookingTime.String(),
+		"updatedAt":     newBooking.UpdatedAt.String(),
+	}
+
+	return successOutput(body)
+}
+
+func createHotelBookingHTTP(c *gin.Context) {
 	var req CreateHotelBookingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	println(req.HotelID)
-	println(req.CustomerName)
-	println(req.CustomerEmail)
-	println(req.RoomNumber)
-
-	var hotelExists bool
-	err := db.QueryRow(context.Background(),
-		"SELECT EXISTS(SELECT 1 FROM hotels WHERE hotel_id=$1)", req.HotelID).
-		Scan(&hotelExists)
+	newBooking, err := createHotelBooking(req.HotelID, req.CheckInDate, req.CheckOutDate, req.CustomerName, req.CustomerEmail, req.RoomNumber)
 	if err != nil {
 		println(err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate hotel"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	c.JSON(http.StatusCreated, newBooking)
+}
+
+func createHotelBooking(hotelId string, checkinDate time.Time, checkoutDate time.Time, customerName string, customerEmail string, roomNumber int) (*HotelBooking, error) {
+	var hotelExists bool
+	err := db.QueryRow(context.Background(),
+		"SELECT EXISTS(SELECT 1 FROM hotels WHERE hotel_id=$1)", hotelId).
+		Scan(&hotelExists)
+	if err != nil {
+		return nil, err
+	}
+
 	if !hotelExists {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Hotel does not exist"})
-		return
+		return nil, fmt.Errorf("Hotel does not exist")
 	}
 
 	newBooking := HotelBooking{
 		BookingID:     uuid.New().String(),
-		HotelID:       req.HotelID,
-		CheckInDate:   req.CheckInDate,
-		CheckOutDate:  req.CheckOutDate,
-		CustomerName:  req.CustomerName,
-		CustomerEmail: req.CustomerEmail,
-		RoomNumber:    req.RoomNumber,
+		HotelID:       hotelId,
+		CheckInDate:   checkinDate,
+		CheckOutDate:  checkoutDate,
+		CustomerName:  customerName,
+		CustomerEmail: customerEmail,
+		RoomNumber:    roomNumber,
 		BookingStatus: BookingStatusActive,
 		BookingTime:   time.Now(),
 		UpdatedAt:     time.Now(),
@@ -228,12 +292,10 @@ func createHotelBooking(c *gin.Context) {
 		newBooking.BookingID, newBooking.HotelID, newBooking.CheckInDate, newBooking.CheckOutDate, newBooking.CustomerName, newBooking.CustomerEmail, newBooking.RoomNumber, newBooking.BookingStatus, newBooking.BookingTime, newBooking.UpdatedAt)
 
 	if err != nil {
-		println(err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create booking"})
-		return
+		return nil, err
 	}
 
-	c.JSON(http.StatusCreated, newBooking)
+	return &newBooking, nil
 }
 
 func getHotelBookings(c *gin.Context) {
@@ -332,33 +394,47 @@ func deleteBookingByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Booking canceled successfully"})
 }
 
-func deleteBookingByHotelRoom(c *gin.Context) {
+func deleteBookingByHotelRoomWorker(task *model.Task) (interface{}, error) {
+	hotelID := task.InputData["hotelId"].(string)
+	roomNumber := strconv.Itoa(int(task.InputData["roomNumber"].(float64)))
+
+	err := deleteBookingByHotelRoom(hotelID, roomNumber)
+
+	if err != nil {
+		println(err.Error())
+		return errorOutput(err)
+	}
+
+	return successOutput()
+}
+
+func deleteBookingByHotelRoomHTTP(c *gin.Context) {
 	hotelID := c.Param("hotelId")
 	roomNumber := c.Param("roomNumber")
 
-	if hotelID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to cancel (Missing hotelId)"})
-		return
-	}
-
-	if roomNumber == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to cancel (Missing roomNumber)"})
-		return
-	}
-
-	println(hotelID)
-	println(roomNumber)
-
-	_, err := db.Exec(context.Background(),
-		"UPDATE hotel_bookings SET booking_status=$1, updated_at=$2 WHERE hotel_id=$3 AND room_number=$4",
-		BookingStatusCanceled, time.Now(), hotelID, roomNumber)
+	err := deleteBookingByHotelRoom(hotelID, roomNumber)
 	if err != nil {
 		println(err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cancel booking"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Booking canceled successfully"})
+}
+
+func deleteBookingByHotelRoom(hotelId string, roomNumber string) error {
+	if hotelId == "" {
+		return fmt.Errorf("failed to cancel (Missing hotelId)")
+	}
+
+	if roomNumber == "" {
+		return fmt.Errorf("failed to cancel (Missing roomNumber)")
+	}
+
+	_, err := db.Exec(context.Background(),
+		"UPDATE hotel_bookings SET booking_status=$1, updated_at=$2 WHERE hotel_id=$3 AND room_number=$4",
+		BookingStatusCanceled, time.Now(), hotelId, roomNumber)
+	return err
 }
 
 // ####################################################################################################################################
@@ -374,11 +450,26 @@ func main() {
 	r.GET("/hotels/:id", getHotelByID)
 	r.DELETE("/hotels/:id", deleteFlight)
 
-	r.POST("/bookings", createHotelBooking)
+	r.POST("/bookings", createHotelBookingHTTP)
 	r.GET("/bookings", getHotelBookings)
 	r.GET("/bookings/:id", getHotelBookingByID)
 	r.DELETE("/bookings/id/:id", deleteBookingByID)
-	r.DELETE("/bookings/room/:hotelId/:roomNumber", deleteBookingByHotelRoom)
+	r.DELETE("/bookings/room/:hotelId/:roomNumber", deleteBookingByHotelRoomHTTP)
+
+	// ############################################################
+	// ### Conductor client setup
+	// ############################################################
+	var apiClient = client.NewAPIClient(
+		nil,
+		settings.NewHttpSettings("http://localhost:8080/api"),
+	)
+	var taskRunner = worker.NewTaskRunnerWithApiClient(apiClient)
+	// WorkflowExecutor could be used to start workflows, possibly used in the separate implementation from compensation implementation
+	// var workflowExecutor = executor.NewWorkflowExecutor(apiClient)
+
+	// ### Workers
+	taskRunner.StartWorker("book_hotel", createHotelBookingWorker, 1, time.Millisecond*100)
+	taskRunner.StartWorker("cancel_hotel_booking", deleteBookingByHotelRoomWorker, 1, time.Millisecond*100)
 
 	r.Run(":3001")
 }

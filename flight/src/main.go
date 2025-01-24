@@ -2,11 +2,16 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/conductor-sdk/conductor-go/sdk/client"
+	"github.com/conductor-sdk/conductor-go/sdk/model"
+	"github.com/conductor-sdk/conductor-go/sdk/settings"
+	"github.com/conductor-sdk/conductor-go/sdk/worker"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -187,39 +192,93 @@ func deleteFlight(c *gin.Context) {
 }
 
 // FlightBooking
-func createBooking(c *gin.Context) {
+type TaskOutput struct {
+	Data      map[string]string
+	Success   bool
+	ErrorCode int
+}
+
+func successOutput(data ...map[string]string) (*TaskOutput, error) {
+	if len(data) != 1 {
+		data = append(data, map[string]string{})
+	}
+
+	return &TaskOutput{
+		Data:      data[0],
+		Success:   true,
+		ErrorCode: 0,
+	}, nil
+}
+
+func errorOutput(err error, errorCode ...int) (*TaskOutput, error) {
+	if len(errorCode) != 1 {
+		errorCode = append(errorCode, 1)
+	}
+
+	return &TaskOutput{
+		Data:      map[string]string{"error": err.Error()},
+		Success:   false,
+		ErrorCode: errorCode[0],
+	}, nil
+}
+
+func createBookingWorker(task *model.Task) (interface{}, error) {
+	customerEmail := task.InputData["customerEmail"].(string)
+	customerName := task.InputData["customerName"].(string)
+	flightID := task.InputData["flightId"].(string)
+	seatNumber := int(task.InputData["seatNumber"].(float64))
+
+	newBooking, err := createBooking(flightID, customerName, customerEmail, seatNumber)
+	if err != nil {
+		println(err.Error())
+		return errorOutput(err)
+	}
+
+	body := map[string]string{
+		"bookingId":     newBooking.BookingID,
+		"bookingStatus": string(newBooking.BookingStatus),
+		"bookingTime":   newBooking.BookingTime.String(),
+		"updatedAt":     newBooking.UpdatedAt.String(),
+	}
+
+	return successOutput(body)
+}
+
+func createBookingHTTP(c *gin.Context) {
 	var req CreateBookingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	println(req.FlightID)
-	println(req.CustomerName)
-	println(req.CustomerEmail)
-	println(req.SeatNumber)
-
-	var flightExists bool
-	err := db.QueryRow(context.Background(),
-		"SELECT EXISTS(SELECT 1 FROM flights WHERE flight_id=$1)", req.FlightID).
-		Scan(&flightExists)
+	newBooking, err := createBooking(req.FlightID, req.CustomerName, req.CustomerEmail, req.SeatNumber)
 	if err != nil {
-		println(err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate flight"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create booking"})
 		return
 	}
 
+	c.JSON(http.StatusCreated, newBooking)
+}
+
+func createBooking(flightId string, customerName string, customerEmail string, seatNumber int) (*FlightBooking, error) {
+	var flightExists bool
+	err := db.QueryRow(context.Background(),
+		"SELECT EXISTS(SELECT 1 FROM flights WHERE flight_id=$1)", flightId).
+		Scan(&flightExists)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to validate flight")
+	}
+
 	if !flightExists {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Flight does not exist"})
-		return
+		return nil, fmt.Errorf("Flight does not exist")
 	}
 
 	newBooking := FlightBooking{
 		BookingID:     uuid.New().String(),
-		FlightID:      req.FlightID,
-		CustomerName:  req.CustomerName,
-		CustomerEmail: req.CustomerEmail,
-		SeatNumber:    req.SeatNumber,
+		FlightID:      flightId,
+		CustomerName:  customerName,
+		CustomerEmail: customerEmail,
+		SeatNumber:    seatNumber,
 		BookingStatus: BookingStatusActive,
 		BookingTime:   time.Now(),
 		UpdatedAt:     time.Now(),
@@ -231,15 +290,12 @@ func createBooking(c *gin.Context) {
 
 	if err != nil {
 		if pgxErr, ok := err.(*pgconn.PgError); ok && pgxErr.Code == "23505" {
-			c.JSON(http.StatusConflict, gin.H{"error": "Seat already booked for this flight"})
-		} else {
-			println(err.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create booking"})
+			return nil, fmt.Errorf("Seat already booked for this flight")
 		}
-		return
+		return nil, fmt.Errorf("Failed to create booking")
 	}
 
-	c.JSON(http.StatusCreated, newBooking)
+	return &newBooking, nil
 }
 
 func getBookings(c *gin.Context) {
@@ -322,7 +378,7 @@ func deleteBookingByID(c *gin.Context) {
 	bookingID := c.Param("id")
 
 	if bookingID == "" {
-		c.JSON(http.StatusBadRequest,  gin.H{"error": "Failed to cancel (Missing bookingId)"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to cancel (Missing bookingId)"})
 		return
 	}
 
@@ -340,33 +396,48 @@ func deleteBookingByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Booking canceled successfully"})
 }
 
-func deleteBookingByFlightSeat(c *gin.Context) {
+func deleteBookingByFlightSeatWorker(task *model.Task) (interface{}, error) {
+	flightID := task.InputData["flightId"].(string)
+	seatNumber := strconv.Itoa(int(task.InputData["seatNumber"].(float64)))
+
+	err := deleteBookingByFlightSeat(flightID, seatNumber)
+	if err != nil {
+		return errorOutput(err)
+	}
+
+	return successOutput()
+}
+
+func deleteBookingByFlightSeatHTTP(c *gin.Context) {
 	flightID := c.Param("flightId")
 	seatNumber := c.Param("seatNumber")
 
-	if flightID == "" {
-		c.JSON(http.StatusBadRequest,  gin.H{"error": "Failed to cancel (Missing flightId)"})
-		return
-	}
-
-	if seatNumber == "" {
-		c.JSON(http.StatusBadRequest,  gin.H{"error": "Failed to cancel (Missing seatNumber)"})
-		return
-	}
-
-	println(flightID)
-	println(seatNumber)
-
-	_, err := db.Exec(context.Background(),
-		"UPDATE flight_bookings SET booking_status=$1, updated_at=$2 WHERE flight_id=$3 AND seat_number=$4",
-		BookingStatusCanceled, time.Now(), flightID, seatNumber)
+	err := deleteBookingByFlightSeat(flightID, seatNumber)
 	if err != nil {
-		println(err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cancel booking"})
+		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Booking canceled successfully"})
+}
+
+func deleteBookingByFlightSeat(flightId string, seatNumber string) error {
+	if flightId == "" {
+		return fmt.Errorf("Failed to cancel (Missing flightId)")
+	}
+
+	if seatNumber == "" {
+		return fmt.Errorf("Failed to cancel (Missing seatNumber)")
+	}
+
+	_, err := db.Exec(context.Background(),
+		"UPDATE flight_bookings SET booking_status=$1, updated_at=$2 WHERE flight_id=$3 AND seat_number=$4",
+		BookingStatusCanceled, time.Now(), flightId, seatNumber)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ####################################################################################################################################
@@ -382,11 +453,26 @@ func main() {
 	r.GET("/flights/:id", getFlightByID)
 	r.DELETE("/flights/:id", deleteFlight)
 
-	r.POST("/bookings", createBooking)
+	r.POST("/bookings", createBookingHTTP)
 	r.GET("/bookings", getBookings)
 	r.GET("/bookings/:id", getBookingByID)
 	r.DELETE("/bookings/id/:id", deleteBookingByID)
-	r.DELETE("/bookings/seat/:flightId/:seatNumber", deleteBookingByFlightSeat)
+	r.DELETE("/bookings/seat/:flightId/:seatNumber", deleteBookingByFlightSeatHTTP)
+
+	// ############################################################
+	// ### Conductor client setup
+	// ############################################################
+	var apiClient = client.NewAPIClient(
+		nil,
+		settings.NewHttpSettings("http://localhost:8080/api"),
+	)
+	var taskRunner = worker.NewTaskRunnerWithApiClient(apiClient)
+	// WorkflowExecutor could be used to start workflows, possibly used in the separate implementation from compensation implementation
+	// var workflowExecutor = executor.NewWorkflowExecutor(apiClient)
+
+	// ### Workers
+	taskRunner.StartWorker("book_flight", createBookingWorker, 1, time.Millisecond*100)
+	taskRunner.StartWorker("cancel_flight_booking", deleteBookingByFlightSeatWorker, 1, time.Millisecond*100)
 
 	r.Run(":3000")
 }
