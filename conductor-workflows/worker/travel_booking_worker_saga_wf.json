@@ -1,9 +1,9 @@
 {
-  "createTime": 1735415195759,
-  "updateTime": 1735438725741,
+  "createTime": 1737421449388,
+  "updateTime": 1737424260955,
   "name": "travel_booking_worker_saga_wf",
   "description": "Travel booking workflow with saga pattern",
-  "version": 6,
+  "version": 2,
   "tasks": [
     {
       "name": "book_flight",
@@ -118,7 +118,7 @@
       "name": "check_hotel_booking_status",
       "taskReferenceName": "check_hotel_booking_status_ref",
       "inputParameters": {
-        "hotelBookingSuccess": "${book_hotel_ref.output.response.statusCode}"
+        "hotelBookingSuccess": "${book_hotel_ref.output.Success}"
       },
       "type": "SWITCH",
       "decisionCases": {

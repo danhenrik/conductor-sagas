@@ -1,12 +1,16 @@
 # build the server
-FROM golang:1.23.4 as build
+FROM golang:latest as build
 
 WORKDIR /app
 
 COPY ./ ./
 
-RUN go mod download
+RUN go install github.com/DataDog/orchestrion@latest
 
-RUN go build -o bin/server main.go
+RUN orchestrion pin
+
+RUN orchestrion go mod download
+
+RUN orchestrion go build -o bin/server main.go
 
 ENTRYPOINT [ "./bin/server" ]

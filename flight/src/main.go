@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/conductor-sdk/conductor-go/sdk/client"
@@ -409,6 +410,20 @@ func deleteBookingByFlightSeat(task *model.Task) (interface{}, error) {
 // ####################################################################################################################################
 // ### Main 																																																										###
 // ####################################################################################################################################
+func startWorker(wg *sync.WaitGroup) {
+	defer wg.Done()
+	var apiClient = client.NewAPIClient(
+		nil,
+		settings.NewHttpSettings("http://localhost:8080/api"),
+	)
+	var taskRunner = worker.NewTaskRunnerWithApiClient(apiClient)
+	// WorkflowExecutor could be used to start workflows, possibly used in the separate implementation from compensation implementation
+	// var workflowExecutor = executor.NewWorkflowExecutor(apiClient)
+
+	// ### Workers
+	taskRunner.StartWorker("book_flight", createBooking, 1, time.Millisecond*100)
+	taskRunner.StartWorker("cancel_flight_booking", deleteBookingByFlightSeat, 1, time.Millisecond*100)
+}
 
 func main() {
 	connectDB()
@@ -428,17 +443,13 @@ func main() {
 	// ############################################################
 	// ### Conductor client setup
 	// ############################################################
-	var apiClient = client.NewAPIClient(
-		nil,
-		settings.NewHttpSettings("http://localhost:8080/api"),
-	)
-	var taskRunner = worker.NewTaskRunnerWithApiClient(apiClient)
-	// WorkflowExecutor could be used to start workflows, possibly used in the separate implementation from compensation implementation
-	// var workflowExecutor = executor.NewWorkflowExecutor(apiClient)
 
-	// ### Workers
-	taskRunner.StartWorker("book_flight", createBooking, 1, time.Millisecond*100)
-	taskRunner.StartWorker("cancel_flight_booking", deleteBookingByFlightSeat, 1, time.Millisecond*100)
+	var wg sync.WaitGroup
+	for i := 1; i <= 10; i++ {
+		wg.Add(1)
+		go startWorker(&wg)
+	}
+	wg.Wait()
 
 	// Start the server
 	r.Run(":3000")
