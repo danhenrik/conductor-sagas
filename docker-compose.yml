@@ -16,7 +16,7 @@ services:
       - PG_PASSWORD=saga-flight
     ports:
       - "3000:3000"
-    network_mode:  host
+    network_mode: host
     depends_on:
       - database-flight
 
@@ -29,7 +29,7 @@ services:
     environment:
       POSTGRES_USER: saga-flight
       POSTGRES_PASSWORD: saga-flight
-    network_mode:  host
+    network_mode: host
     volumes:
       - pg-data-flight:/var/lib/postgresql/data
       - ./flight/infra/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
@@ -42,7 +42,7 @@ services:
       context: ./flight/infra/setup
     volumes:
       - ./flight/infra/setup/setup.py:/setup/setup.py
-    network_mode:  host
+    network_mode: host
     depends_on:
       - database-flight
 
@@ -63,7 +63,7 @@ services:
       - PG_PASSWORD=saga-hotel
     ports:
       - "3001:3001"
-    network_mode:  host
+    network_mode: host
     depends_on:
       - database-hotel
 
@@ -89,7 +89,7 @@ services:
       context: ./hotel/infra/setup
     volumes:
       - ./hotel/infra/setup/setup.py:/setup/setup.py
-    network_mode:  host
+    network_mode: host
     depends_on:
       - database-hotel
 
@@ -113,18 +113,6 @@ services:
       - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
     networks:
       - apps
-
-  adminer:
-    container_name: adminer
-    image: adminer:4
-    depends_on:
-      - database-flight
-      - database-hotel
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: always
-    ports:
-      - "3002:8080"
 
 volumes:
   pg-data-flight:
